@@ -107,6 +107,9 @@ struct MoreView: View {
     .onChange(of: model.ble.hrConnectionState) { _, _ in
       store.refreshRouteStatus(ble: model.ble, model: model)
     }
+    .onChange(of: model.helloSummary) { _, _ in
+      store.refreshRouteStatus(ble: model.ble, model: model)
+    }
   }
 
   @ViewBuilder

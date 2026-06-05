@@ -5,7 +5,7 @@ import UIKit
 
 struct SleepDataBridgeSection: View {
   var store: HealthDataStore
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
@@ -88,7 +88,7 @@ enum SleepAlarmConfirmation: Identifiable {
 }
 
 struct SleepAlarmBridgeSection: View {
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
   @State private var alarmTime = defaultWakeTime()
   @State private var pendingConfirmation: SleepAlarmConfirmation?
   private let alarmID = 1

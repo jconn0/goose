@@ -18,7 +18,7 @@ private enum DevicePanel {
 private struct DeviceContentView: View {
   @Environment(GooseAppModel.self) private var model
   @EnvironmentObject private var packetMonitor: PacketMonitorModel
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
   @State private var selectedPanel: DevicePanel = .status
 
   var body: some View {
@@ -304,7 +304,7 @@ private struct DeviceAdvancedPanel: View {
   @EnvironmentObject private var messageStore: GooseMessageStore
   var model: GooseAppModel
   @ObservedObject var packetMonitor: PacketMonitorModel
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
 
   var body: some View {
     VStack(alignment: .leading, spacing: 22) {
@@ -453,7 +453,7 @@ private struct DeviceFactRow: View {
 
 private struct DeviceActionGrid: View {
   var model: GooseAppModel
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
 
   private let columns = [
     GridItem(.flexible(), spacing: 10),
@@ -559,7 +559,7 @@ private func generationMajorVersion(_ generation: String) -> String {
 }
 
 private struct DiscoveredDeviceList: View {
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {

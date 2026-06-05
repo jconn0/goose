@@ -22,7 +22,7 @@ struct LiveActivityContentView: View {
   @Environment(GooseAppModel.self) private var model
   @AppStorage("goose.swift.activity.lockHintSeen") private var lockHintSeen = false
   @AppStorage("goose.swift.activity.recentWorkouts") private var recentWorkoutRawValues = ""
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
   @ObservedObject var session: ActivitySessionModel
   @ObservedObject var locationTracker: ActivityLocationTracker
 

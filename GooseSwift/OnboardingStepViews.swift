@@ -193,7 +193,7 @@ struct OnboardingPermissionStep: View {
 }
 
 struct OnboardingConnectStep: View {
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -345,7 +345,7 @@ struct OnboardingStandardActionBar: View {
 }
 
 struct OnboardingConnectActionBar: View {
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
   let onBack: () -> Void
   let readyTitle: String
   let onComplete: () -> Void

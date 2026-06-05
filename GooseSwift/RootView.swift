@@ -61,9 +61,10 @@ struct RootView: View {
 }
 
 private struct SyncToastHost: View {
-  @ObservedObject var ble: GooseBLEClient
+  var ble: GooseBLEClient
 
   var body: some View {
+    @Bindable var ble = ble
     VStack {
       if let toast = ble.syncToast {
         Button {
