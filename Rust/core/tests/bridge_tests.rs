@@ -8546,7 +8546,10 @@ fn bridge_panic_catch_returns_error_json_and_normal_requests_still_succeed() {
         std::ffi::CString::new(r#"{"schema":"goose.bridge.request.v1","request_id":"ok-test","method":"core.version","args":{}}"#)
         .unwrap();
     let ok_ptr = unsafe { goose_bridge_handle_json(ok_request.as_ptr()) };
-    assert!(!ok_ptr.is_null(), "expected non-null response pointer for core.version");
+    assert!(
+        !ok_ptr.is_null(),
+        "expected non-null response pointer for core.version"
+    );
     let ok_json = unsafe { std::ffi::CStr::from_ptr(ok_ptr) }
         .to_str()
         .unwrap()

@@ -37,7 +37,10 @@ impl DeviceType {
             DeviceType::Gen4 => 4,
             // HrMonitor never reaches frame parsing (raw-evidence storage only); grouping
             // with the 8-byte family is a compile-time formality.
-            DeviceType::Maverick | DeviceType::Puffin | DeviceType::Goose | DeviceType::HrMonitor => 8,
+            DeviceType::Maverick
+            | DeviceType::Puffin
+            | DeviceType::Goose
+            | DeviceType::HrMonitor => 8,
         }
     }
 
@@ -50,7 +53,10 @@ impl DeviceType {
                     Some(u16::from_le_bytes([buffer[1], buffer[2]]) as usize + 4)
                 }
             }
-            DeviceType::Maverick | DeviceType::Puffin | DeviceType::Goose | DeviceType::HrMonitor => {
+            DeviceType::Maverick
+            | DeviceType::Puffin
+            | DeviceType::Goose
+            | DeviceType::HrMonitor => {
                 if buffer.len() < 8 {
                     None
                 } else {

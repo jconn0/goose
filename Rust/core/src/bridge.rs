@@ -2658,12 +2658,10 @@ fn handle_bridge_request_inner(request: BridgeRequest) -> BridgeResponse {
                 .map(|value| bridge_ok(&request.request_id, value))
                 .unwrap_or_else(|error| bridge_error(&request.request_id, "method_error", error))
         }
-        "storage.compact_raw_evidence" => {
-            request_args::<StorageCompactRawEvidenceArgs>(&request)
-                .and_then(storage_compact_raw_evidence_bridge)
-                .map(|value| bridge_ok(&request.request_id, value))
-                .unwrap_or_else(|error| bridge_error(&request.request_id, "method_error", error))
-        }
+        "storage.compact_raw_evidence" => request_args::<StorageCompactRawEvidenceArgs>(&request)
+            .and_then(storage_compact_raw_evidence_bridge)
+            .map(|value| bridge_ok(&request.request_id, value))
+            .unwrap_or_else(|error| bridge_error(&request.request_id, "method_error", error)),
         // Test-only arm: deterministic panic trigger for FFI catch_unwind coverage.
         // Gated on debug_assertions (true in test/dev, false in release) so it is
         // never compiled into the release static library (satisfies T-09-04 threat model).
@@ -5842,8 +5840,9 @@ fn storage_compact_raw_evidence_bridge(
 ) -> GooseResult<serde_json::Value> {
     let store = open_bridge_store(&args.database_path)?;
     let report = store.compact_raw_evidence_payloads_to_limit(args.limit_bytes)?;
-    serde_json::to_value(report)
-        .map_err(|error| GooseError::message(format!("cannot serialize compaction report: {error}")))
+    serde_json::to_value(report).map_err(|error| {
+        GooseError::message(format!("cannot serialize compaction report: {error}"))
+    })
 }
 
 fn overnight_mirror_batch_bridge(args: OvernightMirrorBatchArgs) -> GooseResult<serde_json::Value> {

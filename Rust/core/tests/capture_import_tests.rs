@@ -729,8 +729,7 @@ fn batch_import_without_active_device_id_leaves_session_device_id_null() {
         .unwrap()
         .unwrap();
     assert_eq!(
-        session.active_device_id,
-        None,
+        session.active_device_id, None,
         "capture_sessions.active_device_id must stay NULL when not supplied"
     );
 }
