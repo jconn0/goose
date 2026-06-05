@@ -45,7 +45,7 @@ Standard 8-point scale mapped to SwiftUI numeric literals (project uses raw CGFl
 
 Exceptions:
 - Touch targets for icon-only toolbar buttons: minimum 44×44pt (SF Symbols in toolbar handled by system).
-- Card internal padding 12pt is permitted for compact rows (existing pattern: `CoachSuggestionButton.padding(12)`, `CoachDataGapCard.padding(13)`).
+- Card internal padding 12pt is permitted for compact rows (existing pattern: `CoachSuggestionButton.padding(12)`, `CoachDataGapCard.padding(13)`). The existing 13pt value must NOT be replicated in new components introduced by this phase — use 12pt (compact) or 16pt (standard) instead.
 - Sheet drag indicator adds natural vertical clearance; no extra top padding required.
 
 Source: `CoachChatScreen.swift` (padding 16, 14, 92), `CoachView.swift` (padding 16, 18), `HRMonitorView.swift` (padding 24, 36, 48).
@@ -68,7 +68,7 @@ Rules:
 - `.fontDesign(.rounded)` applied only to large numeric metric values (existing: `CoachMetricHighlightCard`).
 - Monospaced font (`system(size: 11, weight: .regular, design: .monospaced)`) reserved for tool call payload blocks only — do not apply to settings fields.
 - API key masked display uses `.font(.body)` with a `SecureField` or a masked replacement string — same weight as normal body text.
-- For the new settings sheet, heading labels above grouped sections use `.caption.weight(.bold)` in `.textCase(.uppercase)` (existing pattern: `CoachSuggestionStack` "Start Here" label, `CoachToolPayloadBlock` title label).
+- For the new settings sheet, heading labels above grouped sections use `.caption.weight(.semibold)` in `.textCase(.uppercase)` (existing pattern: `CoachSuggestionStack` "Start Here" label, `CoachToolPayloadBlock` title label).
 
 Source: `CoachMessageViews.swift`, `CoachView.swift`, `CoachChatScreen.swift` — all type usage extracted directly.
 
@@ -141,7 +141,7 @@ Switches on the active `CoachProvider.id`. Renders one of:
 **ChatGPT config:**
 - Auth status label (signed in or "Not signed in").
 - "Sign in with ChatGPT" button (`.borderedProminent`, full width) — visible only when not authenticated. System image: `person.crop.circle.badge.checkmark`.
-- "Sign Out" button (`.bordered`, role: `.destructive`) — visible only when authenticated.
+- "Sign Out" button (`.bordered`, role: `.destructive`) — visible only when authenticated. Triggers `.confirmationDialog("Sign Out?", isPresented: $showingSignOutConfirm)` with destructive "Sign Out" button and cancel.
 
 **Claude config:**
 - `SecureField("Anthropic API key", text: $apiKey)` — masked input. Trailing: lock icon (`.lock`).
@@ -152,13 +152,13 @@ Switches on the active `CoachProvider.id`. Renders one of:
 **Gemini config:**
 - Auth status label.
 - "Sign in with Google" button (`.borderedProminent`) — presents the OAuth WKWebView.
-- "Sign Out" button (`.bordered`, role: `.destructive`) when authenticated.
+- "Sign Out" button (`.bordered`, role: `.destructive`) when authenticated. Triggers `.confirmationDialog("Sign Out?", isPresented: $showingSignOutConfirm)` with destructive "Sign Out" button and cancel.
 
 **Custom endpoint config:**
 - `TextField("Base URL", text: $baseURL)` — plain style, `.keyboardType(.URL)`, `.autocorrectionDisabled()`.
 - `SecureField("API Key", text: $apiKey)`.
 - `TextField("Model ID", text: $modelID)` — e.g. `mistral-small`.
-- "Save" button (`.borderedProminent`).
+- "Save Endpoint" button (`.borderedProminent`).
 - Inline URL validation hint: "Must start with https://" shown in `.caption` `.red` when URL format is invalid and field is non-empty.
 
 ### CoachModelPresetPickerView
@@ -177,6 +177,8 @@ VStack(spacing: 1) {
 ```
 
 This indicator is visible in `CoachView` when at least one provider is active. Hidden (empty string / not shown) when no provider is configured.
+
+**Primary visual anchor:** The `CoachProviderPickerRow` active-provider `checkmark` is the primary visual anchor in the settings sheet — it communicates active selection state at a glance.
 
 ### Gear Icon Toolbar Button
 
@@ -255,8 +257,11 @@ This indicator is visible in `CoachView` when at least one provider is active. H
 | Primary CTA — ChatGPT sign-in | "Sign in with ChatGPT" |
 | Primary CTA — Google sign-in | "Sign in with Google" |
 | Primary CTA — API key save | "Save API Key" |
-| Primary CTA — custom endpoint save | "Save" |
+| Primary CTA — custom endpoint save | "Save Endpoint" |
 | Sign-out action | "Sign Out" |
+| Sign-out confirmation title | "Sign Out?" |
+| Sign-out confirmation message | "You will need to sign in again to use this provider." |
+| Sign-out confirmation button | "Sign Out" (destructive) |
 | Remove key action | "Remove Key" |
 | Remove key confirmation title | "Remove API Key" |
 | Remove key confirmation message | "The key will be deleted from Keychain. You can add a new key at any time." |
@@ -325,11 +330,11 @@ Not applicable. This is a native SwiftUI / iOS project with no component registr
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: FLAG (non-blocking — focal point added)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: FLAG (non-blocking — 13pt existing value excluded from new components)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED — 2026-06-05
