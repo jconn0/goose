@@ -409,15 +409,15 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 18-02-PLAN.md — Wave 2: ClaudeCoachProvider (Anthropic Messages API SSE + Keychain) (COACH-02, COACH-03)
+- [x] 18-02-PLAN.md — Wave 2: ClaudeCoachProvider (Anthropic Messages API SSE + Keychain) (COACH-02, COACH-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 18-03-PLAN.md — Wave 3: CustomEndpointCoachProvider (OpenAI Chat Completions SSE + URL validation + Keychain) (COACH-02, COACH-04)
+- [x] 18-03-PLAN.md — Wave 3: CustomEndpointCoachProvider (OpenAI Chat Completions SSE + URL validation + Keychain) (COACH-02, COACH-04)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 18-04-PLAN.md — Wave 4: GeminiCoachProvider (Google OAuth PKCE via WKWebView + streamGenerateContent SSE) (COACH-02, COACH-03)
+- [x] 18-04-PLAN.md — Wave 4: GeminiCoachProvider (Google OAuth PKCE via WKWebView + streamGenerateContent SSE) (COACH-02, COACH-03)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -441,4 +441,4 @@ Plans:
 | 15. Recovery Formula V2 SDNN | v3.0 | 1/1 | Complete | 2026-06-05 |
 | 16. Deep Link Security | v4.0 | 1/0 | Complete    | 2026-06-05 |
 | 17. @Observable Migration | v4.0 | 4/4 | Complete | 2026-06-05 |
-| 18. Coach Multi-Provider | v4.0 | 1/6 | In Progress|  |
+| 18. Coach Multi-Provider | v4.0 | 4/6 | In Progress|  |
