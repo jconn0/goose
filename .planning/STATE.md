@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: milestone
-status: executing
-stopped_at: Phase 19 context gathered
-last_updated: "2026-06-06T14:29:57.396Z"
-last_activity: 2026-06-05 -- Phase 18 execution started
+milestone: v4.0
+milestone_name: Security, Performance & Coach Expansion
+status: lifecycle
+stopped_at: All v4.0 phases complete — lifecycle in progress
+last_updated: "2026-06-06T00:00:00.000Z"
+last_activity: 2026-06-06 -- Phase 19 complete, v4.0 lifecycle started
 progress:
-  total_phases: 15
-  completed_phases: 10
-  total_plans: 27
-  completed_plans: 28
-  percent: 67
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 13
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-04)
 
 **Core value:** The user captures WHOOP data on iPhone and it is automatically persisted on their personal server — without depending on external infrastructure.
-**Current focus:** Phase 18 — Coach Multi-Provider
+**Current focus:** Phase 19 — pt-pt-localisation-completion
 
 ## Current Position
 
-Phase: 18 (Coach Multi-Provider) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 18
-Last activity: 2026-06-05 -- Phase 18 execution started
+Phase: 19 (pt-pt-localisation-completion) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 19
+Last activity: 2026-06-06 -- Phase 19 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -99,17 +99,27 @@ Recent decisions affecting current work:
 
 ## Deferred Items
 
-Items carried forward from v2.0 milestone close (2026-06-04):
+Items acknowledged and deferred at v4.0 milestone close on 2026-06-06:
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| verification_gap | Phase 09 — human BLE device tests | human_needed | v3.0 close |
+| verification_gap | Phase 18 — Coach streaming tests (Claude, Custom, Gemini, provider switching) | human_needed | v4.0 close |
+| verification_gap | Phase 19 — pt-PT simulator language switch + reinstall/onboarding | human_needed | v4.0 close |
+| quick_task | 260603-tqd-add-test-and-import-actions-to-remote-se | missing | v2.0 close |
+| todo | 2026-06-03-remote-server-test-and-import-actions | missing | v2.0 close |
+| todo | bt-button-open-settings | low priority | v2.0 close |
+
+Items carried forward from v3.0 milestone close (2026-06-05):
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
 | quick_task | 260603-rls-adicionar-codeql-no-git | missing | v2.0 close |
 | quick_task | 260603-s5w-add-healthkitfullimporter-swift-to-goose | missing | v2.0 close |
-| quick_task | 260603-tqd-add-test-and-import-actions-to-remote-se | missing | v2.0 close |
 | uat_gap | Phase 08 — hardware BLE tests | partial (no device) | v2.0 close |
 
 ## Session Continuity
 
-Last session: 2026-06-06T14:29:57.385Z
-Stopped at: Phase 19 context gathered
-Resume file: .planning/phases/19-pt-pt-localisation-completion/19-CONTEXT.md
+Last session: 2026-06-06T15:10:00.000Z
+Stopped at: v4.0 milestone close in progress
+Resume: /gsd-complete-milestone v4.0

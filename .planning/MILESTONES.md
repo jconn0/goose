@@ -1,5 +1,36 @@
 # Milestones
 
+## v4.0 Security, Performance & Coach Expansion (Shipped: 2026-06-06)
+
+**Phases completed:** 4 phases (16-19), 12 plans
+**Known deferred items at close:** 6 (see STATE.md Deferred Items)
+
+**Key accomplishments:**
+
+- Deep link security: `allowsRemoteInvocation` guard blocks state-changing BLE commands from external `gooseswift://` invocations (SEC-01, upstream PR #15)
+- Full `@Observable` migration: GooseAppModel + HealthDataStore + GooseBLEClient — 68 `@Published` removed; NavigationRequestObserver warning eliminated (PERF-01, PERF-02, PERF-03)
+- Coach multi-provider: four AI backends (ChatGPT, Claude, Custom endpoint, Gemini OAuth PKCE); `CoachProvider` protocol; `CoachProviderRegistry`; provider picker UI in settings (COACH-01–06)
+- pt-PT localisation complete: 128 strings covering all v4.0 UI additions including Coach settings, provider config, model preset names; onboarding skip button; startup non-blocking (L10N-03, PERF-04, UX-01)
+
+---
+
+## v3.0 Wearable UX, CI Hardening & RTC Sync (Shipped: 2026-06-05)
+
+**Phases completed:** 8 phases (9–15 + 10.1), 17 plans
+
+**Key accomplishments:**
+
+- BLE stability: FFI catch_unwind + panic=unwind; 24 MB storage cap; exponential reconnect backoff (1s/60s) for WHOOP and HR monitor; per-row device_id in capture sessions
+- HR monitor scan/connect UI: live scan list with RSSI, connect sheet, connected panel, wired into More tab Device section
+- BLE main-thread publishing fix: all @Published mutations dispatched to main thread; eliminates background-thread CoreBluetooth warnings
+- HR monitor independent capture: .hrMonitor mode; startHRMonitorCapture/stopHRMonitorCapture not gated on WHOOP session
+- WHOOP 4.0 RTC clock sync: silent drift correction via BLE after connection
+- Recovery V2 dashboard: hero score, HRV, RHR from bridge; 7-day trend
+- pt-PT localisation infrastructure: Localizable.xcstrings, 650+ strings, dynamic status strings via LocalizedStatusStrings.swift
+- Recovery formula SDNN accuracy: rmssd_segment_aware, hkHRVSDNNMs rename, baseline normalization
+
+---
+
 ## v2.0 Multi-Device & Platform Foundations (Shipped: 2026-06-04)
 
 **Phases completed:** 8 phases, 13 plans, 19 tasks

@@ -3,27 +3,14 @@
 ## What This Is
 
 Fork of `b-nnett/goose`: an iOS app (SwiftUI + Rust core) that reads biometric data from WHOOP devices via BLE and persists it on a self-hosted server.
-v1.0 delivered: FastAPI+TimescaleDB server, automatic iOS→server upload, integration of the 9 upstream PRs.
-v2.0 expands: full WHOOP 4.0 (Gen4) support in the iOS app, foundations for an Android port via JNI, and validation of pipeline extensibility for additional wearables.
-v3.0 completes: HR monitor UX (scan UI, independent capture session), device_id filter fix, Recovery V2 dashboard, pt-PT localisation, and WHOOP 4.0 RTC clock sync.
-
-## Current Milestone: v3.0 Wearable UX, CI Hardening & RTC Sync
-
-**Goal:** Complete the HR monitor UX (scan UI, independent capture session), fix CR-02 device_id filter, deliver Recovery V2 dashboard, add pt-PT localisation, and sync the WHOOP 4.0 clock via BLE (upstream issue #17).
-
-**Target features:**
-- HR monitor scan/connect UI (WEAR-02 completion — no scan UI in v2.0)
-- HR monitor independent capture session (not gated on WHOOP session)
-- CR-02 real per-row device_id filter (v2.0 reverted to no-op)
-- Recovery V2 dashboard with bridge-backed data
-- Multi-language support (pt-PT localisation)
-- WHOOP 4.0 RTC sync — send current time via BLE to fix clock drift (upstream issue #17)
-- BLE reconnect backoff — exponential backoff + 10-attempt circuit breaker (upstream PR #18)
-- BLE reconnection backoff — exponential backoff + 10-attempt circuit breaker (upstream PR #18)
+v1.0 delivered: FastAPI+TimescaleDB server, automatic iOS→server upload, integration of 9 upstream PRs.
+v2.0 expanded: full WHOOP 4.0 (Gen4) support, Android JNI foundations, standard HR GATT pipeline.
+v3.0 completed: HR monitor scan UI + independent capture, BLE stability, Recovery V2 dashboard, pt-PT localisation, WHOOP 4.0 RTC sync, SDNN accuracy fix.
+v4.0 delivered: URL scheme security (deep link guard), full `@Observable` migration, four-provider Coach (ChatGPT/Claude/Custom/Gemini), complete pt-PT localisation for v4.0 strings.
 
 ## Core Value
 
-The user must be able to capture WHOOP data on iPhone and have it persisted automatically on their personal server — without depending on external infrastructure.
+The user must be able to capture WHOOP data on iPhone and have it persisted automatically on their personal server — without depending on external infrastructure. Metrics (HRV, Recovery, Strain, Calorias, Sleep) must align with what WHOOP itself produces from the same raw data.
 
 ## Requirements
 
@@ -39,48 +26,51 @@ The user must be able to capture WHOOP data on iPhone and have it persisted auto
 - ✓ URL/token configuration in the More tab with Keychain/UserDefaults persistence — v1.0
 - ✓ Upload status visible in the More tab (health check + last upload + pending batches) — v1.0
 - ✓ 9 upstream b-nnett/goose PRs integrated via git merge --no-ff — v1.0
-
-### Validated (v2.0)
-
 - ✓ WHOOP 4.0 (Gen4): iOS app layer — command guards, generation field, onboarding, device view, upload device_generation "4.0" — v2.0 (GEN4-01 to GEN4-05)
 - ✓ Android Port Foundations: Rust core compiles to aarch64-linux-android via cargo-ndk; JNI shim; panic=abort; ADR — v2.0 (ANDROID-01 to ANDROID-03)
 - ✓ Server CI: pytest suite runs on GitHub Actions with real TimescaleDB container — v2.0 (CI-01)
 - ✓ Rust 0x2A37 HR parser: `heart_rate_gatt_protocol.rs` with 10 integration tests — v2.0 (WEAR-01)
 - ✓ iOS BLE HR monitor: dedicated CBCentralManager for 0x180D/0x2A37, off-@MainActor notification routing — v2.0 (WEAR-02 partial — no scan UI)
 - ✓ Upload taxonomy: device_class: "HR_MONITOR", DeviceType::HrMonitor Rust variant, decoded hr/rr stream in upload payload — v2.0 (WEAR-03)
+- ✓ BLE stability: FFI catch_unwind + panic=unwind; 24 MB storage cap; exponential reconnect backoff — v3.0
+- ✓ HR monitor scan/connect UI + independent capture session — v3.0 (WEAR-04, WEAR-05, WEAR-06)
+- ✓ WHOOP 4.0 RTC clock sync (BLE drift correction) — v3.0 (RTC-01)
+- ✓ Recovery V2 dashboard with bridge-backed biometric data — v3.0 (DASH-01)
+- ✓ pt-PT localisation (650+ static strings + dynamic status strings) — v3.0 (L10N-01, L10N-02)
+- ✓ Recovery formula SDNN accuracy: rmssd_segment_aware, hkHRVSDNNMs rename, baseline normalisation — v3.0
+- ✓ Deep link security: `allowsRemoteInvocation` guard blocks state-changing BLE commands — v4.0 (SEC-01)
+- ✓ Full `@Observable` migration: GooseAppModel + HealthDataStore + GooseBLEClient; NavigationRequestObserver warning eliminated — v4.0 (PERF-01, PERF-02, PERF-03)
+- ✓ Coach multi-provider: CoachProvider protocol; ChatGPT/Claude/Custom/Gemini; CoachProviderRegistry; provider picker UI — v4.0 (COACH-01 to COACH-06)
+- ✓ pt-PT localisation for all v4.0 additions (128 new strings); onboarding skip button; startup non-blocking — v4.0 (L10N-03, PERF-04, UX-01)
 
-### Active (v3.0)
+### Active (v5.0)
 
-- [ ] HR monitor scan/connect UI — `startHRMonitorScan()` has no caller, `discoveredHRDevices` not rendered (WEAR-02 completion)
-- [ ] HR monitor independent capture session — frames currently gated on WHOOP activeHealthPacketCapture
-- [ ] CR-02 real per-row device_id filter — reverted to no-op in v2.0 (namespace mismatch)
-- [ ] Recovery V2 dashboard with bridge-backed data (phase 999.4)
-- [ ] pt-PT localisation — multi-language support
-- [ ] WHOOP 4.0 RTC sync — send current time via BLE to fix clock drift (upstream issue #17)
-- [ ] BLE reconnect backoff — exponential backoff + 10-attempt circuit breaker (upstream PR #18); apply to both WHOOP and HR monitor delegates
-- [ ] FFI panic safety — `catch_unwind` + `panic = "unwind"` in release so panics return JSON error instead of crashing (upstream PR #19)
-- [ ] Storage retention cap — reduce raw evidence retention from 512 MB to 24 MB to prevent SQLite bloat on large history syncs (upstream PR #19)
-
-### Deferred (v3+)
-
-- [ ] Upload queue persisted in SQLite to survive app restarts
-- [ ] Background URLSession for upload when the app is suspended
-- [ ] PRs back to upstream b-nnett/goose with fork fixes
+- [ ] HRV pipeline accuracy: rmssd_segment_aware extended for BLE gaps > 3 s; Lipponen-Tarvainen ectopic filter; tiered SWS window selection (ALG-HRV-01 to ALG-HRV-04)
+- [ ] Recovery score Z-score + logistic model: EWMA baseline; cold-start gate; trust levels; Vermelho/Amarelo/Verde bands (ALG-REC-01 to ALG-REC-03)
+- [ ] Calorias — Mifflin-St Jeor RMR; Keytel + Harris-Benedict coefficients validated against WHOOP 5.37.0 binary (Ghidra MCP) (ALG-CAL-01, ALG-CAL-02)
+- [ ] Strain — Tanaka HRmax + Banister TRIMP + personal denominator calibration (ALG-STR-01 to ALG-STR-03)
+- [ ] Sleep metrics without staging: HR dip %, WASO, SOL, REM latency, disturbance count (ALG-SLP-01, ALG-SLP-02)
+- [ ] IMU data pipeline: I16SeriesSummary full samples; gravity table in SQLite; TOGGLE_IMU_MODE_ON/OFF in startCapture (IMU-01 to IMU-04)
+- [ ] 4-class sleep staging: Cole-Kripke + cardiorespiratory features + physiological reimposition (ALG-SLP-03, ALG-SLP-04)
+- [ ] body_hex storage optimization: exclude body_hex from K10/K21 cached JSON (PERF-05)
+- [ ] Gen4 historical sync upstream fixes: retain inversion, wrapping overflow, padding, confinement, UUID normalisation (SYNC-01 to SYNC-05)
 
 ### Out of Scope
 
+- Upload queue persisted in SQLite to survive app restarts
+- Background URLSession for upload when the app is suspended
+- PRs back to upstream b-nnett/goose with fork fixes
 - Server-side data analysis (dashboard, alerts) — out of scope
 - Advanced authentication (OAuth, 2FA) — simple Bearer token is sufficient
 - Full Android app — architecture foundations only in v2.0
+- Offline mode — real-time is core value
 
 ## Context
 
 - **Fork**: `tigercraft4/goose` is a fork of `https://github.com/b-nnett/goose`
-- **Upstream open PRs (9)**: #1 (fix timeout/duration), #3 (FFI docs), #4 (scroll perf), #5 (Apple Health), #6 (Rust CI), #7 (list_methods RPC), #10 (CI + bug fixes), #12 (FFI threading), #13 (Windows compat)
-- **Upstream open issues (5)**: #2 (Android discussion), #8 (WHOOP 4.0?), #9 (multiplatform), #11 (License + Gen4), #17 (RTC clock sync WHOOP 4.0)
-- **my-whoop server**: already exists at `/Users/francisco/Documents/my-whoop/server/` — FastAPI, TimescaleDB, Dockerfile, docker-compose.yml
-- **Server API**: `POST /v1/ingest-decoded` with Bearer token, receives already-decoded data
-- **iOS upload**: GooseSwift already has `remote_bind_enabled` as a placeholder but without upload implementation
+- **Upstream open PRs**: #19 (rmssd_segment_aware, body_hex), #26 (Gen4 historical sync review)
+- **my-whoop server**: `~/Documents/my-whoop/server/` — FastAPI, TimescaleDB; algorithm validation source at `~/Documents/my-whoop/server/ingest/app/analysis/`
+- **Ghidra analysis**: WHOOP 5.37.0 IPA binary reverse-engineered (2026-06-01) — calorie coefficients confirmed (FINDINGS_5.md §GHIDRA-HB-01 + §GHIDRA-02)
 
 ## Constraints
 
@@ -96,26 +86,28 @@ The user must be able to capture WHOOP data on iPhone and have it persisted auto
 | Copy full server to server/ in Goose | Keep everything in one repo; simplify deployment with a single git pull | ✓ Good — v1.0 |
 | Upload via native URLSession | No external iOS dependencies; URLSession is sufficient for POST JSON | ✓ Good — v1.0 |
 | Simple Bearer token for server auth | Personal/private server; OAuth overhead unnecessary | ✓ Good — v1.0 |
-| GOOSE_ prefix (instead of WHOOP_) for env vars and containers | Aligned with the fork repo; avoids confusion with the original my-whoop | ✓ Good — v1.0 |
-| Docker named volumes (no DATA_ROOT) | Zero config for `docker compose up`; simpler for self-hosted | ✓ Good — v1.0 |
-| mDNS .local for server hostname | Automatic discovery on the local network; zero DNS config | ✓ Good — v1.0 |
-| PR #12 FFI threading integrated last | After Phases 2+3+4 executed; no conflict with upload client | ✓ Good — v1.0 |
+| GOOSE_ prefix for env vars and containers | Aligned with fork repo; avoids confusion with my-whoop | ✓ Good — v1.0 |
+| Docker named volumes (no DATA_ROOT) | Zero config for `docker compose up` | ✓ Good — v1.0 |
+| mDNS .local for server hostname | Automatic LAN discovery; zero DNS config | ✓ Good — v1.0 |
+| Phase ordering: Phase 17 @Observable before Phase 18 Coach | CoachView must consume @Observable pattern | ✓ Good — v4.0 |
+| Four Coach providers in wave approach | Each provider independent; no merge conflicts on CoachProviderRegistry | ✓ Good — v4.0 |
+| Google OAuth via WKWebView (no SDK) | Zero external dependency; user-supplied client_id; PKCE mandatory | ✓ Good — v4.0 |
+| Inline L10N gap closure (9 strings, no new phase) | Faster than planning a new phase for 9-string fix | ✓ Good — v4.0 |
 
-## Current State (v2.0)
+## Current State (v4.0)
 
-**Shipped:** 2026-06-04
-- WHOOP Gen4 iOS support: `WearableDescriptor.whoopGen4`, `GooseDiscoveredDevice.generation`, Gen4 upload path
-- Android JNI foundations: `Rust/core/src/bridge.rs` android module, `Cargo.toml` cfg-gates, CI job
-- Standard HR GATT support: `heart_rate_gatt_protocol.rs`, `GooseBLEClient+HRMonitor.swift`, upload hr/rr stream
-- Gap closure Phase 8.1: `capture_import.rs` HrMonitor branch, `unix_from_iso8601` helper
-- 89 files modified, +8011 lines, 11 plans
+**Shipped:** 2026-06-06
+- Deep link security: `allowsRemoteInvocation` guard in GooseAppModel+Lifecycle.swift (SEC-01)
+- @Observable migration: 68 @Published removed; `@Environment(GooseAppModel.self)` throughout; per-property SwiftUI re-render (PERF-01/02/03)
+- Coach multi-provider: CoachProvider protocol + CoachProviderRegistry + 4 providers + CoachSettingsSheet picker (COACH-01–06)
+- pt-PT complete: 128 new strings; onboarding Keychain fix; startup unblocked (L10N-03, PERF-04, UX-01)
+- 148 Swift files, 73 Rust files
+- Known deferred: COACH-06 device migration test, 4 streaming provider runtime tests, PERF-03 runtime confirmation, 3 localisation device tests
 
-**v1.0 baseline** (shipped 2026-06-03): FastAPI+TimescaleDB server, iOS upload client, 9 upstream PRs integrated
-
-**Known deferred (v3.0):** HR monitor scan UI, independent capture session, CR-02 per-row filter
+**v3.0 baseline** (shipped 2026-06-05): HR monitor UX, BLE stability, Recovery V2, pt-PT infrastructure, WHOOP 4.0 RTC sync, SDNN accuracy
 
 ---
-*Last updated: 2026-06-04 — v3.0 milestone started*
+*Last updated: 2026-06-06 — v4.0 milestone shipped*
 
 ## Evolution
 

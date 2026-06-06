@@ -5,7 +5,8 @@
 - ✅ **v1.0 Remote Server + Upstream PRs** — Phases 1-5 (shipped 2026-06-03)
 - ✅ **v2.0 Multi-Device & Platform Foundations** — Phases 6-8+8.1 (shipped 2026-06-04)
 - ✅ **v3.0 Wearable UX, CI Hardening & RTC Sync** — Phases 9-15 (shipped 2026-06-05)
-- 🚧 **v4.0 Security, Performance & Coach Expansion** — Phases 16+ (planning)
+- ✅ **v4.0 Security, Performance & Coach Expansion** — Phases 16-19 (shipped 2026-06-06)
+- 📋 **v5.0 Metrics Accuracy, IMU & Upstream Fixes** — Phases 20-28 (backlog)
 
 ## Phases
 
@@ -52,13 +53,19 @@ Full details: `.planning/milestones/v3.0-ROADMAP.md`
 
 </details>
 
-### 🚧 v4.0 Security, Performance & Coach Expansion (In Progress)
+<details>
+<summary>✅ v4.0 Security, Performance & Coach Expansion (Phases 16-19) — SHIPPED 2026-06-06</summary>
 
-**Milestone Goal:** Block state-changing debug deep links (security), eliminate ObservableObject re-render overhead via @Observable migration (performance), and expand Coach to support multiple AI providers.
+- [x] Phase 16: Deep Link Security (1/1 plans) — completed 2026-06-05
+- [x] Phase 17: @Observable Migration (4/4 plans) — completed 2026-06-05
+- [x] Phase 18: Coach Multi-Provider (6/6 plans) — completed 2026-06-06
+- [x] Phase 19: pt-PT Localisation Completion (1/1 plans) — completed 2026-06-06
 
-- [x] **Phase 16: Deep Link Security** — Block state-changing `gooseswift://` commands from external callers (PR #15) (completed 2026-06-05)
-- [ ] **Phase 17: @Observable Migration** — Migrate GooseAppModel + HealthDataStore to @Observable, eliminate NavigationRequestObserver warnings
-- [ ] **Phase 18: Coach Multi-Provider** — CoachProvider protocol, Claude + custom endpoint support, provider picker UI
+Full details: `.planning/milestones/v4.0-ROADMAP.md`
+
+Known deferred: COACH-06 device migration test, 4 streaming provider runtime tests, 3 localisation device tests
+
+</details>
 
 ## Phase Details
 
@@ -227,28 +234,18 @@ Plans:
 | 11. HR Monitor Independent Capture | v3.0 | 2/2 | Complete    | 2026-06-05 |
 | 12. WHOOP 4.0 RTC Clock Sync | v3.0 | 1/1 | Complete    | 2026-06-05 |
 | 13. Recovery V2 Dashboard | v3.0 | 1/1 | Complete    | 2026-06-05 |
-| 14. pt-PT Localisation | v3.0 | 4/4 | Complete    | 2026-06-05 |
+| 14. pt-PT Localisation | v3.0 | 4/4 | Complete | 2026-06-05 |
+| 15. Recovery Formula V2 SDNN | v3.0 | 1/1 | Complete | 2026-06-05 |
+| 16. Deep Link Security | v4.0 | 1/1 | Complete | 2026-06-05 |
+| 17. @Observable Migration | v4.0 | 4/4 | Complete | 2026-06-05 |
+| 18. Coach Multi-Provider | v4.0 | 6/6 | Complete | 2026-06-06 |
+| 19. pt-PT Localisation Completion | v4.0 | 1/1 | Complete | 2026-06-06 |
 
 ## Backlog
 
-### Phase 999.5: GooseAppModel @Observable Migration (BACKLOG)
+### Phase 999.5: GooseAppModel @Observable Migration (promoted to Phase 17 — v4.0)
 
-**Goal:** Migrate `GooseAppModel` (and `HealthDataStore`) from `ObservableObject` + `@Published` to Swift's `@Observable` macro (iOS 17+), eliminating the global `objectWillChange` signal that causes all `@EnvironmentObject` observers to re-render on every property change regardless of which property was accessed.
-
-**Why:** The residual `Update NavigationRequestObserver tried to update multiple times per frame` warning (3× at capture startup) is caused by `applyHealthPacketCaptureFamilySnapshot` making 3+ `@Published` writes in sequence, each firing `objectWillChange`. With `@Observable`, only views that access the specific changed property re-render — eliminating the spurious navigation observer updates entirely.
-
-**What's needed:**
-
-1. Replace `class GooseAppModel: ObservableObject` → `@Observable class GooseAppModel`
-2. Remove all `@Published` annotations from `GooseAppModel` properties
-3. Replace `@EnvironmentObject var model: GooseAppModel` → `@Environment(GooseAppModel.self) var model` in all views
-4. Same migration for `HealthDataStore`
-5. Remove `ObservedObject` wrappers for `ble: GooseBLEClient` where applicable
-
-**Scope:** Large refactor (~150 files). Safe to defer — existing behaviour is correct, only performance of re-renders is affected.
-
-**Requirements:** TBD
-**Plans:** 4/4 plans complete
+Promoted to Phase 17: @Observable Migration.
 
 ---
 
@@ -258,31 +255,9 @@ Promoted to Phase 13: Recovery V2 Dashboard.
 
 ---
 
-### Phase 999.3: Apply upstream PR #15 — Block state-changing debug deep links (BACKLOG)
+### Phase 999.3: Apply upstream PR #15 (promoted to Phase 16 — v4.0)
 
-**Goal:** Integrate upstream PR #15 from b-nnett/goose (by kobemartin) which fixes a security issue with the `gooseswift://` custom URL scheme. Currently, external apps or webpages can invoke state-changing WHOOP research commands via deep link while the device is connected.
-
-**PR:** https://github.com/b-nnett/goose/pull/15
-**Author:** kobemartin
-**Status:** Open (not yet merged into b-nnett/goose)
-
-**What the PR does:**
-
-- Allows external debug-command deep links to invoke **read-only** research commands only
-- Blocks **state-changing** and unknown-risk command categories before any Bluetooth write
-- Hides remote URL examples in the UI for commands that cannot be safely invoked remotely
-
-**Why it matters:** The `gooseswift://` scheme is accessible from Safari or any app. Without this fix, a malicious webpage could trigger a WHOOP command (e.g., historical sync, alarm, sensor capture) while the user has Goose open and connected.
-
-**Integration approach:**
-
-1. Fetch the diff: `git fetch https://github.com/kobemartin/goose.git codex/block-state-change-debug-deep-links`
-2. Review the changes against our fork (we've modified `GooseAppModel.swift` and debug commands significantly)
-3. Apply with `git cherry-pick` or manual merge, resolving conflicts with our changes
-4. Verify: deep links to read-only commands still work, state-changing commands are blocked
-
-**Requirements:** TBD
-**Plans:** 4/4 plans complete
+Promoted to Phase 16: Deep Link Security.
 
 ---
 
@@ -292,29 +267,9 @@ Promoted to Phase 14: pt-PT Localisation.
 
 ---
 
-### Phase 999.1: Coach Multi-Provider & Custom Endpoint (BACKLOG)
+### Phase 999.1: Coach Multi-Provider & Custom Endpoint (promoted to Phase 18 — v4.0)
 
-**Goal:** Expand the Coach tab from a single hardcoded provider (OpenAI GPT-5.5 via Responses API) to support multiple named accounts per provider, additional providers, and a user-configured custom endpoint using an OpenAI-compatible Chat Completions API (`POST /v1/chat/completions`).
-
-**Current implementation assessment (2026-06-03):**
-
-- `OpenAICoachResponsesClient` — calls OpenAI Responses API (`/v1/responses`), hardcoded to `gpt-5.5`
-- `CoachModelPreset` — enum with 3 GPT-5.5 effort variants only (`low`/`medium`/`high`)
-- `OpenAICoachChatModel` — single-provider `@Published` model; no provider abstraction
-- API key stored as a single Keychain item — no multi-account support
-- No `CoachProvider` protocol or provider registry exists
-
-**What's needed:**
-
-1. `CoachProvider` protocol — abstract interface `send(messages:systemPrompt:) async throws -> AsyncStream<String>`
-2. Named accounts per provider — stored in Keychain with a provider prefix (multiple keys)
-3. Additional providers: Claude API (Anthropic), Gemini (Google), local (Ollama/LM Studio)
-4. Custom endpoint — user-configured base URL + API key + model ID; must implement OpenAI Chat Completions-compatible protocol (`POST /v1/chat/completions` with SSE streaming)
-5. Provider picker UI — in Coach settings or More tab, shows configured accounts, lets user add/remove/select active account
-6. Migration path — existing single OpenAI key promoted to named account on first launch
-
-**Requirements:** TBD
-**Plans:** 0 plans — promote with `/gsd-review-backlog` when ready
+Promoted to Phase 18: Coach Multi-Provider.
 
 ### Phase 15: Recovery Formula V2 (SDNN Accuracy)
 
@@ -336,137 +291,231 @@ Plans:
 
 ---
 
-### Phase 999.6: body_hex Storage Optimization (BACKLOG)
+### Phase 999.6: body_hex Storage Optimization (promoted to Phase 27 — v5.0)
 
-**Goal:** Eliminar o campo `body_hex` duplicado no cached parsed-payload JSON para frames grandes, reduzindo o tamanho da base de dados e acelerando o batch de métricas.
-
-**Source:** Commit `3eef377` do po-sc (PR #19, [comentário de 2026-06-05](https://github.com/b-nnett/goose/pull/19#issuecomment-4632805440)). No upstream, este fix reduziu ~43 MB num DB de 147 MB no raw-motion stream e tornou o metric batch 27% mais rápido.
-
-**What's needed:**
-
-1. Verificar se o fork duplica `payload_hex` num campo `body_hex` no cached parsed-payload JSON para frames grandes (verificar `Rust/core/src/protocol.rs:515` e o comportamento do `parse_frame_batch` bridge).
-2. Se confirmado: condicionar a inclusão de `body_hex` ao tamanho do frame ou a uma flag `include_body_hex` — excluir para frames de raw-motion (K10/K21) que são volumosos e cujo payload já está em `payload_hex`.
-3. Medir impacto: comparar tamanho da DB e tempo do metric batch antes/depois.
-
-**Why:** Frames de raw-motion gerados durante capture sessions podem crescer a centenas de MB em capturas longas. Remover a duplicação é uma quick-win de storage sem perda de dados.
-
-**Requirements:** TBD
-**Plans:** 0 plans — promote with `/gsd-review-backlog` when ready
+Promoted to Phase 27: body_hex Storage Optimization.
 
 ---
 
-### Phase 16: Deep Link Security
+## 📋 v5.0 Metrics Accuracy, IMU & Upstream Fixes (Backlog)
 
-**Goal**: External apps and webpages cannot trigger state-changing WHOOP commands via the `gooseswift://` URL scheme
-**Depends on**: Phase 15 (v3.0 complete)
-**Requirements**: SEC-01
-**Reference**: Upstream PR #15 (kobemartin — codex/block-state-change-debug-deep-links)
-**Success Criteria** (what must be TRUE):
+**Milestone Goal:** Portar para o Rust core do Goose os algoritmos validados do `my-whoop`, confirmados contra o IPA real da WHOOP 5.37.0 via Ghidra e contra publicações peer-reviewed. O resultado é que cada métrica exposta pela app (HRV, Recovery, Strain, Calorias, Sleep) produz valores alinhados com os da WHOOP para os mesmos dados brutos.
 
-  1. Read-only debug commands (inspect, read) continue to work via deep link
-  2. State-changing commands (Bluetooth writes, alarm set, sensor capture) are blocked when invoked from external URL scheme
-  3. Remote URL examples hidden in UI for commands that cannot be safely invoked remotely
-
-**Plans**: TBD
-
-### Phase 17: @Observable Migration
-
-**Goal**: GooseAppModel and HealthDataStore use Swift @Observable macro — only views that access a changed property re-render
-**Depends on**: Phase 16
-**Requirements**: PERF-01, PERF-02, PERF-03
-**Success Criteria** (what must be TRUE):
-
-  1. `class GooseAppModel: ObservableObject` → `@Observable class GooseAppModel` (all ~80 @Published removed)
-  2. `class HealthDataStore: ObservableObject` → `@Observable class HealthDataStore`
-  3. All views updated from `@EnvironmentObject var model` → `@Environment(GooseAppModel.self) var model`
-  4. `Update NavigationRequestObserver tried to update multiple times per frame` no longer appears in logs during BLE capture
-
-**Plans**: 4 plans (4 waves)
-
-- [ ] 17-01-PLAN.md — Wave 1: GooseAppModel @Observable migration + @Environment rewire + MoreDataStore Combine removal
-- [ ] 17-02-PLAN.md — Wave 2: HealthDataStore @Observable migration + @State ownership + @ObservedObject removal
-- [ ] 17-03-PLAN.md — Wave 3: GooseBLEClient @Observable migration (NSObject kept) + MoreView onChange route status
-- [ ] 17-04-PLAN.md — Wave 4: GooseSwiftApp injection sweep + full build verification + PERF-03 runtime check
-
-### Phase 18: Coach Multi-Provider
-
-**Goal**: Coach tab supports multiple AI providers and user-configured custom endpoints
-**Depends on**: Phase 16
-**Requirements**: COACH-01, COACH-02, COACH-03, COACH-04, COACH-05, COACH-06
-**Success Criteria** (what must be TRUE):
-
-  1. `CoachProvider` protocol exists — any conforming type can serve as the AI backend
-  2. User can configure at least two providers (OpenAI + Claude) with named accounts in Keychain
-  3. User can enter a custom OpenAI-compatible endpoint (base URL + API key + model) and use it for chat
-  4. Provider picker UI in More/Coach settings shows configured accounts with add/remove/select
-  5. Existing single OpenAI key is automatically migrated to a named account on first launch
-  6. Streaming responses work for all supported providers
-
-**Plans**: 6 plans (6 waves)
-**Wave 1**
-
-- [x] 18-01-PLAN.md — Wave 1: CoachProvider protocol + CoachProviderRegistry + CoachChatModel refactor + ChatGPTCoachProvider + Wave 0 test stubs (COACH-01, COACH-06)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 18-02-PLAN.md — Wave 2: ClaudeCoachProvider (Anthropic Messages API SSE + Keychain) (COACH-02, COACH-03)
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 18-03-PLAN.md — Wave 3: CustomEndpointCoachProvider (OpenAI Chat Completions SSE + URL validation + Keychain) (COACH-02, COACH-04)
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 18-04-PLAN.md — Wave 4: GeminiCoachProvider (Google OAuth PKCE via WKWebView + streamGenerateContent SSE) (COACH-02, COACH-03)
-
-**Wave 5** *(blocked on Wave 4 completion)*
-
-- [x] 18-05-PLAN.md — Wave 5: CoachSettingsSheet provider picker UI + gear icon + four-provider registry (COACH-05)
-
-**Wave 6** *(blocked on Wave 5 completion)*
-
-- [x] 18-06-PLAN.md — Wave 6: Integration, build/test verification, migration smoke test (COACH-01, COACH-05, COACH-06)
+**Fonte primária:** `~/Documents/my-whoop/server/ingest/app/analysis/` — pipeline Python com remodelação de precisão completa (2026-05-26). Coeficientes de calorias confirmados byte-a-byte contra `Whoop` binary AARCH64 via Ghidra MCP (2026-06-01, `FINDINGS_5.md` §GHIDRA-HB-01 e §GHIDRA-02).
 
 ---
 
-### Phase 19: pt-PT Localisation Completion (Coach + Startup Fixes)
+### Phase 20: HRV Pipeline Accuracy
 
-**Goal**: All user-visible strings introduced in v4.0 (Phase 16-18) are translated to pt-PT; onboarding shows on reinstall; app startup is non-blocking
-**Depends on**: Phase 18
-**Requirements**: L10N-03, PERF-04, UX-01
+**Goal:** O RMSSD noturno do Goose passa a usar a janela SWS correta (última fase de sono profundo, não a noite toda), filtragem de batimentos ectópicos, e pooling segmentado que não cria diffs espúrios entre gaps de dados BLE.
+**Depends on:** Phase 19
+**Requirements:** ALG-HRV-01, ALG-HRV-02, ALG-HRV-03, ALG-HRV-04
+**Source:** `my-whoop/server/ingest/app/analysis/hrv.py` — Task Force 1996, Lipponen & Tarvainen 2019 (Kubios), te Lindert 2013, Walch 2019
+
 **Success Criteria** (what must be TRUE):
 
-  1. All 129 strings missing pt-PT translation are translated — app is fully Portuguese when OS is set to pt-PT
-  2. When OS is English, app shows English; when OS is pt-PT, app shows Portuguese (verified by switching simulator language)
-  3. Onboarding shows on fresh install even when Keychain has previous profile data (profile fields pre-filled, completion state NOT restored)
-  4. App renders first frame before overnight recovery runs (startup no longer blocked by file I/O on main thread)
-  5. "Saltar configuração" skip button available on onboarding for quick bypass
-
-**Audit findings (2026-06-06):**
-
-- Phase 18 added CoachSettingsSheet, provider config views, API key fields — none of these were added to Localizable.xcstrings. Missing strings include: `API Key`, `Base URL`, `Claude Sonnet 4.6`, `Claude Opus 4.8`, `Claude Haiku 4.5`, `Coach Settings`, `Configuration`, `Anthropic API key`, `Bearer token (API key)`, `GPT-5.5 High`, `Filters`, `Change`, `Calibrate`, and ~115 others.
-- Of 754 total xcstrings, 597 have pt-PT translation, 129 real-text strings do not (27 trivial format strings can be left).
-- 3 startup fixes already shipped (overnight recovery to background, defaultDatabasePath cache, skip button).
+  1. `rmssd_segment_aware` (já existe no Phase 15) é estendido para recusar diffs que cruzem gaps de timestamp > 3 s no stream RR bruto do WHOOP — RMSSD não é inflacionado por dropouts BLE
+  2. Pipeline de limpeza de RR: filtro de plausibilidade fisiológica 300–2000 ms → remoção de batimentos ectópicos via regra de Malik (rejeita par quando |ΔRR|/RR > 20%) — equivalente ao Kubios sem depender de neurokit2
+  3. Seleção de janela noturna em 3 níveis implementada no bridge: (1) último episódio "deep" ≥ 5 min; (2) média ponderada por recência de todos os episódios "deep"; (3) fallback noite toda — `HrvInput` aceita `stage_segments` opcionais
+  4. pNN50 exposto no `HrvOutput` e visível no dashboard Recovery V2 (já no struct, garantir que chega à UI)
+  5. `cargo test -p goose-core` verde; testes unitários cobrem: filtro 300–2000 ms, regra de Malik, invariante cross-window, tiered window selection
 
 **Plans:** TBD
 
+**Wave 1** — Rust: filtro fisiológico + regra de Malik no `metrics.rs`
+**Wave 2** *(blocked on Wave 1)* — Rust: tiered SWS window selection no bridge (`hrv.compute_nightly`)
+**Wave 3** *(blocked on Wave 2)* — Swift + UI: pNN50 surfacing no Recovery V2 dashboard
+
 ---
 
-### Phase 999.7: Gen4 Historical Sync — Upstream Fixes (BACKLOG)
+### Phase 21: Recovery Score — Z-score + Logistic Model
 
-**Goal:** Apply the correctness fixes identified during review of upstream PR #26 (jakobrmarrone) to the fork's existing Gen4 historical sync implementation.
-**Source:** PR #26 review — b-nnett/goose (2026-06-06)
+**Goal:** O score de Recovery (0–100) passa a usar o modelo composto ponderado com baseline pessoal EWMA, cold-start gate, e squash logístico — alinhado com a metodologia publicada pela WHOOP.
+**Depends on:** Phase 20
+**Requirements:** ALG-REC-01, ALG-REC-02, ALG-REC-03
+**Source:** `my-whoop/server/ingest/app/analysis/recovery.py` + `baselines.py` — Logistic squash Z=0 → 58% (média WHOOP publicada); EWMA com Winsorização; Lipponen & Tarvainen 2019
 
-**What's needed:**
+**Success Criteria** (what must be TRUE):
 
-1. **`onHistoricalSyncCompleted` retain / lifetime inversion** (`AppShellView.swift`) — closure captures `HealthDataStore` strongly; `GooseAppModel` (mais longo) fica a segurar um objecto da view layer indefinidamente. Fix: `[weak healthStore]` + `.onDisappear { model.onHistoricalSyncCompleted = nil }`. Confirmar que `handleHistoricalSyncProgress` corre no main actor antes de invocar `runPacketInputs()` (`@MainActor`).
-2. **`gen4HistoricalPageSeq` overflow inconsistente** (`GooseBLEClient+HistoricalHandlers.swift`) — site cmd-34 usa `&+ 1` (wrapping) mas historyEnd e retry usam `+= 1` (trapping). Unificar para `&+= 1` em todos os sites de incremento.
-3. **Gen4 payload padding não verificado** (`GooseBLETypes.swift`) — `buildGen4CommandFrame` não faz padding de 4 bytes enquanto `buildV5CommandFrame` e o builder Rust fazem. Confirmar contra capturas PacketLogger se os frames do app oficial são padded; adicionar padding ou comentário.
-4. **`activeDeviceGeneration` confinamento implícito** (`GooseBLEClient.swift`) — adicionar `/// Only mutated/read on coreBluetoothQueue.` à declaração.
-5. **UUID prefix case-sensitivity** (`WhoopGeneration.detect`) — `hasPrefix("61080002")` deve normalizar para lowercase.
+  1. `recovery_score_v1` no `metrics.rs` implementa `score = 100 / (1 + exp(-1.6 × (Z + 0.20)))` com `Z = 0.60·z_hrv + 0.20·z_rhr + 0.05·z_resp + 0.15·z_sleep` — Z=0 produz ≈ 58%
+  2. Cada z-score normaliza pelo baseline pessoal EWMA (não média populacional): `z = (valor − μ_ewma) / (1.253 × σ_ewma)`
+  3. Cold-start gate: quando o utilizador tem < 4 noites de baseline HRV válidas, o bridge retorna `recovery: null` em vez de um score fabricado — UI mostra estado "A calibrar"
+  4. Trust levels do baseline expostos: `calibrating` (< 4 noites) → `provisional` (4–13) → `trusted` (≥ 14)
+  5. Bandas de cor correctas: Vermelho < 34 / Amarelo 34–66 / Verde ≥ 67
+  6. `cargo test` verde; testes cobrem: cold-start, Z=0→58%, bandas, normalização EWMA
 
-**Requirements:** TBD
-**Plans:** 0 plans — promote with `/gsd-review-backlog` when ready
+**Plans:** TBD
+
+**Wave 1** — Rust: EWMA baseline state + update + fold_history no `metrics.rs`
+**Wave 2** *(blocked on Wave 1)* — Rust: `recovery_score_v1` com modelo Z + logístico + cold-start gate
+**Wave 3** *(blocked on Wave 2)* — Swift: bridge call + UI "A calibrar" state + bandas de cor
+
+---
+
+### Phase 22: Calorias — Mifflin-St Jeor + Coeficientes IPA
+
+**Goal:** Adicionar o modelo Mifflin-St Jeor para RMR diário total (ausente no Goose); confirmar que os coeficientes Keytel e Harris-Benedict em uso são os validados contra o IPA da WHOOP 5.37.0 via Ghidra.
+**Depends on:** Phase 19
+**Requirements:** ALG-CAL-01, ALG-CAL-02
+**Source:** `my-whoop/server/ingest/app/analysis/calories.py`; coeficientes Keytel confirmados em `0x1058a5ac0` e Harris-Benedict em `0x1058a5a80` (WHOOP `Whoop` binary AARCH64, Ghidra MCP, 2026-06-01, `FINDINGS_5.md §GHIDRA-HB-01 + §GHIDRA-02`)
+
+**Success Criteria** (what must be TRUE):
+
+  1. `rmr_mifflin_st_jeor(weight_kg, height_cm, age, sex)` implementado no `energy_rollup.rs`:
+     Homens: `10·kg + 6.25·cm − 5·age + 5` kcal/dia; Mulheres: `10·kg + 6.25·cm − 5·age − 161` kcal/dia; Outro: intercept médio −78
+
+  2. Coeficientes Keytel em uso no `energy_rollup.rs` validados contra os confirmados por Ghidra: homens `(−55.0969, 0.6309, 0.1988, 0.2017)`, mulheres `(−20.4022, 0.4472, −0.1263, 0.0740)`, divisor `251.04`
+  3. Coeficientes Harris-Benedict em uso validados contra Ghidra: homens `(88.362, 13.397, 479.9, −5.677)`, mulheres `(447.593, 9.247, 309.8, −4.330)`
+  4. Threshold activo/repouso: HR ≥ resting_hr + 30% × (hrmax − resting_hr) usa Keytel; abaixo usa Harris-Benedict
+  5. RMR diário (Mifflin-St Jeor) exposto como campo separado no `EnergyDailyRollupReport` e visível no dashboard
+  6. `cargo test` verde; testes cobrem: coeficientes exatos, threshold ativo/repouso, sex=nonbinary
+
+**Plans:** TBD
+
+**Wave 1** — Rust: `rmr_mifflin_st_jeor` + verificação/correcção dos coeficientes Keytel e Harris-Benedict em `energy_rollup.rs`
+**Wave 2** *(blocked on Wave 1)* — Swift + UI: campo RMR diário no dashboard Energy/Calorias
+
+---
+
+### Phase 23: Strain — Tanaka HRmax + Banister TRIMP + Calibração
+
+**Goal:** O cálculo de Strain passa a usar HRmax personalizado (Tanaka ou percentil 99.5 do histórico), expõe o modelo Banister como alternativa ao Edwards, e inclui helper de calibração do denominador contra valores reais da WHOOP.
+**Depends on:** Phase 19
+**Requirements:** ALG-STR-01, ALG-STR-02, ALG-STR-03
+**Source:** `my-whoop/server/ingest/app/analysis/strain.py` — Karvonen 1957, Edwards 1993, Banister 1991, Tanaka et al. 2001
+
+**Success Criteria** (what must be TRUE):
+
+  1. `tanaka_hrmax(age) = 208 − 0.7 × age` substitui `220 − age` como default em todo o pipeline de strain — diferença ≥ 2 bpm para utilizadores > 40 anos
+  2. `estimate_hrmax_from_history(hr_history: &[f64]) → Option<f64>` implementado: percentil 99.5 do histórico quando ≥ 600 amostras (≥ 10 min); max(observado, Tanaka) como escolha final
+  3. `banister_trimp(hr_series, resting_hr, hrmax, sex)` implementado como alternativa ao Edwards: `Σ duração × x × 0.64 × e^(b×x)` com `b=1.92` (homens) / `b=1.67` (mulheres), `x=%HRR/100`
+  4. `fit_strain_denominator(pairs: &[(f64, f64)]) → f64` implementado: dado ≥ 2 pares (TRIMP, strain_WHOOP), ajusta `D` em `21 × ln(TRIMP+1)/ln(D)` por least-squares — permite calibração pessoal
+  5. Bridge expõe `method: "edwards" | "banister"` e `use_personal_hrmax: bool` como parâmetros opcionais
+  6. `cargo test` verde; testes cobrem: Tanaka vs 220-age, Banister > Edwards para alta intensidade, calibração com 2 pares
+
+**Plans:** TBD
+
+**Wave 1** — Rust: `tanaka_hrmax` + `estimate_hrmax_from_history` + `banister_trimp` + `fit_strain_denominator` em `metrics.rs`
+**Wave 2** *(blocked on Wave 1)* — Rust: actualizar bridge strain para aceitar os novos parâmetros
+**Wave 3** *(blocked on Wave 2)* — Swift: expor método de TRIMP nas Settings; mostrar HRmax personalizado no dashboard
+
+---
+
+### Phase 24: Sleep Metrics Detalhados (sem staging)
+
+**Goal:** Expor métricas AASM derivadas dos dados de sleep já existentes — HR dip noturno %, WASO, SOL, latência REM, perturbações — sem depender de staging 4-classes (que requer IMU).
+**Depends on:** Phase 20
+**Requirements:** ALG-SLP-01, ALG-SLP-02
+**Source:** `my-whoop/server/ingest/app/analysis/sleep.py` — Berry et al. 2017 (AASM Manual v2.4); `my-whoop/server/ingest/app/analysis/recovery.py` (`resting_hr`)
+
+**Success Criteria** (what must be TRUE):
+
+  1. `heart_rate_dip_pct` computado a partir do stream HR da sessão de sono: `(hr_baseline_pre_sleep − hr_nadir_5min_rolling) / hr_baseline_pre_sleep × 100` — campo já existe em `SleepInput`, passa a ser preenchido em vez de `null`
+  2. `waso_minutes` (Wake After Sleep Onset) computado a partir de epochs de wake após o onset — estimado via threshold de actividade HR (≥ 1.05 × resting_hr) quando staging não disponível
+  3. `sol_minutes` (Sleep Onset Latency) preenchido correctamente quando disponível nos dados de staging existentes
+  4. `rem_latency_minutes` extraído quando stage_segments inclui episódios REM
+  5. `disturbance_count` (episódios de wake pós-onset) exposto no `SleepScoreOutput` e visível no dashboard Sleep V2
+  6. `cargo test` verde; testes cobrem: HR dip com nadir correcto, WASO = 0 quando sem wake pós-onset
+
+**Plans:** TBD
+
+**Wave 1** — Rust: HR dip computation + WASO estimation em `metrics.rs`
+**Wave 2** *(blocked on Wave 1)* — Swift + UI: campos HR dip, WASO, disturbances no Sleep V2 dashboard
+
+---
+
+### Phase 25: IMU Data Pipeline
+
+**Goal:** Os dados do acelerómetro e giroscópio do WHOOP chegam completos ao bridge Rust e são persistidos no SQLite como rows `gravity` — desbloqueando o sleep staging baseado em movimento (Phase 26).
+**Depends on:** Phase 19
+**Requirements:** IMU-01, IMU-02, IMU-03, IMU-04
+**Source:** `FINDINGS.md §9b` (my-whoop) — layout K10 confirmado por controlled-motion analysis: accelX/Y/Z offsets 82/282/482, gyroX/Y/Z offsets 685/885/1085, 100 amostras por eixo por pacote, signed int16 LE, escala ~3900 LSB/g
+
+**Contexto técnico:** O parsing K10 já existe em `protocol.rs` mas o `I16SeriesSummary` guarda apenas um preview de 8 amostras — os 100 valores por eixo são descartados. No `bridge.rs` o Vec `gravity` é inicializado vazio e nunca preenchido (`// no direct extraction` na linha 3154). O `TOGGLE_IMU_MODE` (command 106) existe como comando de debug mas não é enviado automaticamente nas sessões de captura.
+
+**Success Criteria** (what must be TRUE):
+
+  1. `I16SeriesSummary` em `protocol.rs` preserva o array completo `samples: Vec<i16>` (100 valores por eixo) em vez de descartar após o preview — sem quebrar a serialização existente
+  2. No bridge `extract_streams`, frames K10 com `RawMotionK10` populam o Vec `gravity` com rows `{"ts": unix_s, "x": f64_g, "y": f64_g, "z": f64_g}` convertidos com fator ~3900 LSB/g; fator exposto como parâmetro configurável para calibração futura
+  3. Tabela `gravity (device_id TEXT, ts REAL, x REAL, y REAL, z REAL)` criada no schema SQLite com índice em `(device_id, ts)`; bridge method `store.insert_gravity_rows` implementado
+  4. `GooseBLEClient.swift`: `startCapture()` envia `TOGGLE_IMU_MODE_ON` (command 106) após confirmar bond; `stopCapture()` envia `TOGGLE_IMU_MODE_OFF` — simétrico com o padrão `START_RAW_DATA`/`STOP_RAW_DATA` existente
+  5. Upload payload em `GooseUploadService.swift` inclui `gravity` não-vazio quando há dados IMU na sessão
+  6. `cargo test` verde; testes cobrem: preservação dos 100 samples, conversão LSB→g, insert gravity rows, query por janela de tempo
+
+**Plans:** TBD
+
+**Wave 1** — Rust: estender `I16SeriesSummary` com `samples: Vec<i16>` + ajustar `parse_k10_raw_motion_summary` para preencher o campo (`protocol.rs`)
+**Wave 2** *(blocked on Wave 1)* — Rust: populating `gravity` Vec no bridge extractor K10 com conversão LSB→g + schema SQL + `insert_gravity_rows` (`bridge.rs`, `store.rs`)
+**Wave 3** *(blocked on Wave 2)* — Swift: `TOGGLE_IMU_MODE_ON/OFF` automático em `startCapture`/`stopCapture`; upload payload gravity; verificação end-to-end com dispositivo real
+
+---
+
+### Phase 26: 4-Class Sleep Staging (Cole-Kripke + IMU)
+
+**Goal:** Pipeline de staging automático wake/light/deep/REM a partir do acelerómetro IMU + FC + RR — eliminando a dependência exclusiva dos dados de staging da WHOOP.
+**Depends on:** Phase 24, Phase 25
+**Requirements:** ALG-SLP-03, ALG-SLP-04
+**Source:** `my-whoop/server/ingest/app/analysis/sleep.py` — Cole & al. 1992 (Cole-Kripke actigrafia); te Lindert & Van Someren 2013 (proxy actigrafia 30 s); Walch et al. 2019 (DoG HR-variability feature)
+
+**Success Criteria** (what must be TRUE):
+
+  1. `cole_kripke_activity_series(gravity_rows)` implementado em `sleep_staging.rs`: magnitude inter-amostra `√(Δx²+Δy²+Δz²)` por par consecutivo; dropout (coordenada ausente) → intensidade infinita
+  2. Spine sleep/wake: janela rolante de 15 min, 70% amostras em repouso (< 0.01 g de variação) → candidato de sono; gaps > 20 min quebram o run; runs < 15 min absorvidos pelos vizinhos
+  3. Features cardiorrespiratórias por época de 30s: HR médio, RMSSD, Walch DoG (variabilidade HR), clock proxy — calculadas sobre janela rolante de 5 min centrada na época
+  4. Classificador produz hipnograma: wake / light / deep / REM; suavização (flips isolados de 30 s eliminados); reimposição fisiológica (sem REM nos primeiros 15 min; deep concentrado no 1.º terço)
+  5. ≥ 70% concordância de época com staging WHOOP em ≥ 5 noites de validação cruzada
+  6. Métricas AASM completas do hipnograma: TST, eficiência, SOL, WASO, latência REM, stage_minutes por fase
+  7. `cargo test` verde; testes cobrem: Cole-Kripke, threshold stillness, merge de runs curtos, reimposição fisiológica
+
+**Plans:** TBD
+
+**Wave 1** — Rust: `cole_kripke_activity_series` + `activity_magnitude` em `sleep_staging.rs`
+**Wave 2** *(blocked on Wave 1)* — Rust: features cardiorrespiratórias por época 30s + classificador threshold-based
+**Wave 3** *(blocked on Wave 2)* — Rust: suavização + reimposição fisiológica + métricas AASM completas
+**Wave 4** *(blocked on Wave 3)* — Validação cruzada com dados reais + Swift + UI: hypnogram visual no Sleep V2
+
+---
+
+### Phase 27: body_hex Storage Optimization
+
+**Goal:** Eliminar o campo `body_hex` duplicado no cached parsed-payload JSON para frames de raw-motion, reduzindo o tamanho da base de dados e acelerando o batch de métricas.
+**Depends on:** Phase 19
+**Requirements:** PERF-05
+**Source:** Commit `3eef377` do po-sc (upstream PR #19, 2026-06-05) — reduziu ~43 MB num DB de 147 MB no raw-motion stream e tornou o metric batch 27% mais rápido
+
+**Success Criteria** (what must be TRUE):
+
+  1. Verificação em `Rust/core/src/protocol.rs:515` confirma se o fork duplica `payload_hex` no campo `body_hex` do cached parsed-payload JSON para frames K10/K21 grandes
+  2. Se confirmado: `body_hex` excluído do JSON para frames de raw-motion (K10/K21) — a flag `include_body_hex: false` ou condicionamento por tamanho de frame implementado em `parse_frame_batch`
+  3. Redução mensurável no tamanho da DB: ≥ 20 MB poupados por 24 h de captura com IMU activo (comparação antes/depois documentada)
+  4. Tempo do metric batch inalterado ou melhorado
+  5. `cargo test` verde — nenhum teste de round-trip `body_hex` quebrado
+
+**Plans:** TBD
+
+**Wave 1** — Rust: auditar `protocol.rs:515` + `parse_frame_batch`; condicionar `body_hex` para frames K10/K21; medir impacto
+
+---
+
+### Phase 28: Gen4 Historical Sync — Upstream Fixes
+
+**Goal:** Aplicar os fixes de correcção identificados durante a review do upstream PR #26 à implementação de Gen4 historical sync do fork.
+**Depends on:** Phase 19
+**Requirements:** SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05
+**Source:** PR #26 review — b-nnett/goose (jakobrmarrone, 2026-06-06)
+
+**Success Criteria** (what must be TRUE):
+
+  1. **Retain inversion corrigido** (`AppShellView.swift`): closure `onHistoricalSyncCompleted` usa `[weak healthStore]` + `.onDisappear { model.onHistoricalSyncCompleted = nil }` — sem referência forte de `GooseAppModel` (vida longa) para `HealthDataStore` (vida da view)
+  2. **Overflow consistente** (`GooseBLEClient+HistoricalHandlers.swift`): todos os sites de incremento de `gen4HistoricalPageSeq` usam `&+= 1` (wrapping) — sem mistura de wrapping e trapping
+  3. **Padding Gen4 clarificado** (`GooseBLETypes.swift`): `buildGen4CommandFrame` tem padding de 4 bytes ou comentário documentado explicando a ausência (confirmado contra capturas PacketLogger)
+  4. **Confinamento documentado** (`GooseBLEClient.swift`): `activeDeviceGeneration` tem `/// Only mutated/read on coreBluetoothQueue.`
+  5. **UUID normalizado** (`WhoopGeneration.detect`): `hasPrefix("61080002")` normaliza para lowercase antes da comparação
+  6. `cargo test` + Xcode build verdes após os 5 fixes
+
+**Plans:** TBD
+
+**Wave 1** — Swift: fixes 1–5 em sequência (todos no mesmo wave — cada fix é cirúrgico e independente)
 
 ---
 
@@ -484,4 +533,14 @@ Plans:
 | 15. Recovery Formula V2 SDNN | v3.0 | 1/1 | Complete | 2026-06-05 |
 | 16. Deep Link Security | v4.0 | 1/0 | Complete    | 2026-06-05 |
 | 17. @Observable Migration | v4.0 | 4/4 | Complete | 2026-06-05 |
-| 18. Coach Multi-Provider | v4.0 | 5/6 | In Progress|  |
+| 18. Coach Multi-Provider | v4.0 | 6/6 | Complete | 2026-06-06 |
+| 19. pt-PT Localisation Completion | v4.0 | 1/1 | Complete   | 2026-06-06 |
+| 20. HRV Pipeline Accuracy | v5.0 | 0/0 | Backlog | |
+| 21. Recovery Score Z-score + Logistic | v5.0 | 0/0 | Backlog | |
+| 22. Calorias Mifflin-St Jeor + IPA | v5.0 | 0/0 | Backlog | |
+| 23. Strain Tanaka + Banister + Calibração | v5.0 | 0/0 | Backlog | |
+| 24. Sleep Metrics Detalhados (sem staging) | v5.0 | 0/0 | Backlog | |
+| 25. IMU Data Pipeline | v5.0 | 0/0 | Backlog | |
+| 26. 4-Class Sleep Staging (Cole-Kripke + IMU) | v5.0 | 0/0 | Backlog | |
+| 27. body_hex Storage Optimization | v5.0 | 0/0 | Backlog | |
+| 28. Gen4 Historical Sync — Upstream Fixes | v5.0 | 0/0 | Backlog | |
