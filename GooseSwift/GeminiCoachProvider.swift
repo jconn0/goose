@@ -110,7 +110,7 @@ enum GeminiProviderError: Error {
 
 // MARK: - GeminiCoachProvider
 
-@MainActor @Observable
+@Observable
 final class GeminiCoachProvider: CoachProvider {
   static let oauthClientIdKey = "goose.coach.gemini.oauthClientId"
 

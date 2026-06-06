@@ -43,7 +43,7 @@ final class CoachChatModel {
     Task { [chatGPT] in
       await chatGPT.refreshAuth()
       if chatGPT.isAuthenticated {
-        await seedAssistantPromptIfNeeded()
+        seedAssistantPromptIfNeeded()
       }
     }
   }
@@ -68,7 +68,7 @@ final class CoachChatModel {
     Task { [chatGPT, weak self] in
       do {
         try await chatGPT.startOAuthSignIn()
-        await self?.seedAssistantPromptIfNeeded()
+        self?.seedAssistantPromptIfNeeded()
       } catch is CancellationError {
         // cancelled — no-op
       } catch {

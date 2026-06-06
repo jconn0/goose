@@ -49,7 +49,7 @@ final class HealthDataStore {
   var packetInputRunID: UUID?
   var packetInputIsRunning = false
   var heartRateTimelineRefreshID: UUID?
-  nonisolated(unsafe) var heartRateSeriesUpdateObserver: NSObjectProtocol?
+  @ObservationIgnored nonisolated(unsafe) var heartRateSeriesUpdateObserver: NSObjectProtocol?
   let packetInputQueue = DispatchQueue(label: "com.goose.swift.health.packet-inputs", qos: .utility)
   let heartRateTimelineQueue = DispatchQueue(label: "com.goose.swift.health.heart-rate-timeline", qos: .utility)
   var databasePath: String
