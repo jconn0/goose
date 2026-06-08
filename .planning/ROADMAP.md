@@ -7,6 +7,7 @@
 - ✅ **v3.0 Wearable UX, CI Hardening & RTC Sync** — Phases 9-15 (shipped 2026-06-05)
 - ✅ **v4.0 Security, Performance & Coach Expansion** — Phases 16-19 (shipped 2026-06-06)
 - ✅ **v5.0 Metrics Accuracy, IMU & Upstream Fixes** — Phases 20-35 (shipped 2026-06-08)
+- 📋 **v6.0 UI Wiring, Algorithm Alignment & Parity Validation** — Phases 36-44 (backlog)
 
 ## Phases
 
@@ -77,6 +78,138 @@ Key: HRV accuracy, Sleep staging (Cole-Kripke + 4-class), Strain/Calories (Ghidr
 Known deferred: ALG-HRV-04, ALG-SLP-04, VAL-01 (human gates — require real WHOOP device data)
 
 </details>
+
+<details>
+<summary>📋 v6.0 UI Wiring, Algorithm Alignment & Parity Validation (Phases 36-44) — BACKLOG</summary>
+
+- [ ] **Phase 36: Readiness Engine UI** — RDY-UI-01
+- [ ] **Phase 37: Sleep Staging UI (4-class hypnogram + AASM)** — SLP-UI-01
+- [ ] **Phase 38: V24 Biometrics UI (SpO2, skin temp, resp)** — BIO-UI-01
+- [ ] **Phase 39: Exercise Sessions UI** — EX-UI-01
+- [ ] **Phase 40: Upload Sync UI (mark synced + pending badge)** — SYNC-UI-01
+- [ ] **Phase 41: IMU-based Step Detection UI** — STEP-UI-01
+- [ ] **Phase 42: Algorithm Alignment (recovery formula, EWMA half-life, sleep epoch 30s)** — ALG-ALIGN-01
+- [ ] **Phase 43: HRV Parity Validation (ALG-HRV-04 / VAL-01 human gate)** — VAL-01
+- [ ] **Phase 44: Sleep Staging Validation (ALG-SLP-04 human gate)** — VAL-02
+
+</details>
+
+## Phase Details
+
+### Phase 36: Readiness Engine UI
+
+**Goal**: O utilizador vê o nível de disponibilidade diário (rundown/strained/balanced/primed) no dashboard de recuperação, derivado do ACWR (7d/28d) e do índice de monotonia de Foster.
+**Depends on**: Phase 30 (Readiness Engine Rust — shipped v5.0)
+**Requirements**: RDY-UI-01
+**Success Criteria** (what must be TRUE):
+
+  1. `HealthDataStore+Readiness.swift` chama `metrics.goose_readiness_v1` com os últimos 28 dias de strain do histórico diário
+  2. O Recovery V2 dashboard mostra o nível de disponibilidade (ícone + label) com banda de cor consistente com o recovery score
+  3. Quando dados < 28 dias, mostra estado "Insuficiente" em vez de falhar silenciosamente
+  4. `acwr_zone` e `monotony_high` são surfaçados como tooltip ou detalhe expandível
+
+---
+
+### Phase 37: Sleep Staging UI (4-class hypnogram + AASM)
+
+**Goal**: O utilizador vê o hipnograma 4-class (wake/light/deep/REM) e as métricas AASM completas (REM latency, TST, eficiência, SOL, WASO por etapa) no Sleep V2 dashboard.
+**Depends on**: Phase 26 (Sleep Staging Rust — shipped v5.0)
+**Requirements**: SLP-UI-01
+**Success Criteria** (what must be TRUE):
+
+  1. `HealthDataStore+Sleep.swift` chama `metrics.sleep_staging` e expõe `stage_minutes`, `rem_latency_minutes`, `sleep_efficiency_fraction`
+  2. Sleep V2 mostra barra de fases colorida (wake=cinza, light=azul claro, deep=azul escuro, REM=roxo)
+  3. REM latency e eficiência são mostrados como métricas secondárias abaixo do score principal
+  4. O staging usa o `resp_available` flag para indicar quando o REM é inferido sem dados respiratórios
+
+---
+
+### Phase 38: V24 Biometrics UI (SpO2, skin temp, resp)
+
+**Goal**: Os dados biométricos V24 (SpO2 raw, temperatura da pele, resp rate) são surfaçados na tab de saúde ou num painel de diagnóstico, com quality_flag="uncalibrated" claramente indicado.
+**Depends on**: Phase 27 (V24 Biometric Decode — shipped v5.0)
+**Requirements**: BIO-UI-01
+**Success Criteria** (what must be TRUE):
+
+  1. `HealthDataStore+V24Biometrics.swift` chama `biometrics.v24_between` e `biometrics.spo2_from_raw` para a última sessão overnight
+  2. A tab de Saúde mostra SpO2 estimado (com badge "não calibrado"), temperatura e resp rate
+  3. Os valores são always mostrados com a indicação de uncalibrated — nunca como valores clínicos
+  4. Skin contact = false → campo mostrado como "--" em vez de zero
+
+---
+
+### Phase 39: Exercise Sessions UI
+
+**Goal**: As sessões de exercício detectadas automaticamente (Phase 28) são listadas na tab de actividade com duração, calorias, zona de esforço e strain.
+**Depends on**: Phase 28 (Exercise Detection — shipped v5.0)
+**Requirements**: EX-UI-01
+**Success Criteria** (what must be TRUE):
+
+  1. `HealthDataStore+Exercise.swift` chama `exercise.sessions_between` para os últimos 7 dias
+  2. A tab de actividade mostra lista de sessões com: hora de início, duração, calorias kcal, strain score
+  3. O breakdown de zonas Edwards (1-5) é visível num gráfico de barras por sessão
+  4. "Detectado automaticamente" label distingue da actividade registada manualmente
+
+---
+
+### Phase 40: Upload Sync UI (mark synced + pending badge)
+
+**Goal**: O utilizador vê quantas rows estão pendentes de sincronização e pode forçar um backfill. O GooseUploadService marca as rows como synced=1 após confirmação do servidor.
+**Depends on**: Phase 29 (Upload Sync Infrastructure — shipped v5.0)
+**Requirements**: SYNC-UI-01
+**Success Criteria** (what must be TRUE):
+
+  1. `GooseUploadService` chama `sync.mark_synced` após cada POST /v1/ingest-decoded bem-sucedido
+  2. `sync.rows_pending_upload` é consultado periodicamente e expõe contagem no More tab
+  3. Botão "Sync pendente (N rows)" no More tab dispara `sync.backfill_streams` manualmente
+  4. O upload pipeline usa `sync.rows_pending_upload` em vez de `upload.get_recent_decoded_streams` para streams com synced flag
+
+---
+
+### Phase 41: IMU-based Step Detection UI
+
+**Goal**: A contagem de passos derivada dos dados de gravidade IMU (K10/K21) é surfaçada como métrica complementar ao step counter WHOOP, com indicação da fonte.
+**Depends on**: Phase 21 (IMU Data Foundation), Phase 28 (Exercise Detection)
+**Requirements**: STEP-UI-01
+**Success Criteria** (what must be TRUE):
+
+  1. Um algoritmo de contagem de passos via zero-crossing na magnitude de gravidade K10 é implementado em Rust
+  2. A contagem IMU-derivada é comparada com o step counter oficial WHOOP e a discrepância é registada
+  3. A tab de actividade mostra passos IMU com label "via acelerómetro" distinta do contador WHOOP
+
+---
+
+### Phase 42: Algorithm Alignment (recovery formula, EWMA, sleep epoch)
+
+**Goal**: Corrigir as 3 principais divergências identificadas na Phase 35 (cross-project review) vs my-whoop: fórmula de recovery (linear → Z-score+logística), EWMA alpha (0.10 → 0.0483 = 14-night half-life), resolução de época de sono (1 min → 30 s).
+**Depends on**: Phases 24, 25, 26 (shipped v5.0)
+**Requirements**: ALG-ALIGN-01
+**Success Criteria** (what must be TRUE):
+
+  1. `goose_recovery_v1` usa Z-score + logística alinhada com my-whoop: pesos HRV=0.60, RHR=0.20, resp=0.05, sleep_perf=0.15; Z=0 → ~58%
+  2. EWMA baseline alpha corrigido para 0.0483 (14-night half-life) com Winsorisation ±3σ e hard-reject ±5σ
+  3. Cole-Kripke usa épocas de 30 s (não 1 min) — `COLE_KRIPKE_EPOCH_MINUTES = 0.5`; WASO e SOL resolution duplicam
+  4. Testes de paridade: delta recovery ≤ 0.5%, delta RMSSD ≤ 1 ms, delta SOL ≤ 1 epoch em fixtures sintéticos
+
+---
+
+### Phase 43: HRV Parity Validation (VAL-01 / ALG-HRV-04)
+
+**Goal**: Fechar a gate manual ALG-HRV-04 — Rust `goose_hrv_v0` RMSSD validado contra Python reference em ≥ 5 sessões overnight reais capturadas pelo Goose iOS.
+**Depends on**: Phase 22 (HRV Accuracy), Phase 29 (Upload Sync — para dados reais chegarem ao servidor)
+**Requirements**: VAL-01
+**Human gate**: Requer dispositivo WHOOP físico e ≥ 5 noites de captura
+
+---
+
+### Phase 44: Sleep Staging Validation (ALG-SLP-04)
+
+**Goal**: Fechar a gate manual ALG-SLP-04 — classificador 4-class validado com ≥ 70% de concordância de época em ≥ 5 sessões overnight vs etapas oficiais WHOOP.
+**Depends on**: Phase 26 (Sleep Staging), Phase 37 (Sleep Staging UI)
+**Requirements**: VAL-02
+**Human gate**: Requer dispositivo WHOOP físico e ≥ 5 noites com dados WHOOP oficiais para comparação
+
+---
 
 ## Phase Details
 
