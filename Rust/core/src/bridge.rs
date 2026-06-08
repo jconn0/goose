@@ -102,7 +102,8 @@ use crate::{
         built_in_default_algorithm_preferences, default_algorithm_preferences_for_scope,
         fit_strain_denominator, goose_hrv_v0, goose_readiness_v1, goose_recovery_v0,
         goose_recovery_v1, goose_sleep_v0, goose_sleep_v1, goose_strain_v0, goose_strain_v1,
-        goose_stress_v0, sleep_history_night_is_usable,
+        goose_stress_v0, imu_step_count_v1, sleep_history_night_is_usable,
+        ImuStepCountInput,
     },
     openwhoop_reference::{
         OPENWHOOP_REFERENCE_ATTRIBUTION, OPENWHOOP_REFERENCE_COMMIT,
@@ -248,6 +249,7 @@ pub const BRIDGE_METHODS: &[&str] = &[
     "metrics.fit_strain_denominator",
     "metrics.goose_hrv_v0",
     "metrics.goose_readiness_v1",
+    "metrics.imu_step_count_v1",
     "metrics.goose_recovery_v0",
     "metrics.goose_recovery_v1",
     "metrics.goose_sleep_v0",
@@ -2218,6 +2220,13 @@ fn handle_bridge_request_inner(request: BridgeRequest) -> BridgeResponse {
             .and_then(|input| {
                 serde_json::to_value(goose_readiness_v1(&input))
                     .map_err(|e| GooseError::message(format!("cannot serialize readiness_v1 output: {e}")))
+            })
+            .map(|value| bridge_ok(&request.request_id, value))
+            .unwrap_or_else(|error| bridge_error(&request.request_id, "method_error", error)),
+        "metrics.imu_step_count_v1" => request_args::<ImuStepCountInput>(&request)
+            .and_then(|input| {
+                serde_json::to_value(imu_step_count_v1(&input))
+                    .map_err(|e| GooseError::message(format!("cannot serialize imu_step_count output: {e}")))
             })
             .map(|value| bridge_ok(&request.request_id, value))
             .unwrap_or_else(|error| bridge_error(&request.request_id, "method_error", error)),

@@ -522,6 +522,15 @@ extension HealthDataStore {
     return "--"
   }
 
+  // Returns the WHOOP step count as an integer for comparison with IMU-derived steps.
+  func strainStepCountForComparison() -> Int? {
+    if let metric = stepMetric(for: Date()),
+       let steps = Self.intValue(metric["steps"]), steps > 0 {
+      return steps
+    }
+    return hkSteps.flatMap { $0 > 0 ? $0 : nil }
+  }
+
   func whoopActiveCaloriesDisplayText(for date: Date = Date(), calendar: Calendar = .current) -> String {
     let text = energyKcalDisplayText(key: "active_kcal", date: date, calendar: calendar)
     if text != "--" { return text }

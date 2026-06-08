@@ -466,6 +466,14 @@ struct StrainV2OverviewPage: View {
             }
             .frame(height: 96)
 
+            if let imu = store.imuStepCountResult, !imu.insufficientData {
+              IMUStepsComparisonCard(
+                palette: palette,
+                imuSteps: imu.stepCount,
+                whoopSteps: store.strainStepCountForComparison()
+              )
+            }
+
             SleepV2CoachingCard(palette: palette, tip: coachTip) {
               openCoachTip()
             }
@@ -558,9 +566,11 @@ struct StrainV2OverviewPage: View {
     }
     .onAppear {
       store.runExerciseSessions()
+      store.runIMUStepCount()
     }
     .onChange(of: model.packetImportRevision) { _, _ in
       store.runExerciseSessions()
+      store.runIMUStepCount()
     }
   }
 
@@ -1073,5 +1083,71 @@ struct ExerciseZoneBar: View {
         }
       }
     }
+  }
+}
+
+// MARK: - IMUStepsComparisonCard
+
+struct IMUStepsComparisonCard: View {
+  let palette: SleepV2Palette
+  let imuSteps: Int
+  let whoopSteps: Int?
+
+  var body: some View {
+    HStack(spacing: 14) {
+      VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 6) {
+          Image(systemName: "waveform")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(palette.accent)
+          Text("via acelerómetro")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(palette.mutedText)
+        }
+        Text("\(imuSteps) passos")
+          .font(.headline.weight(.semibold))
+          .fontDesign(.rounded)
+          .foregroundStyle(palette.text)
+      }
+
+      Spacer()
+
+      if let whoop = whoopSteps {
+        VStack(alignment: .trailing, spacing: 4) {
+          Text("WHOOP")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(palette.mutedText)
+          Text("\(whoop) passos")
+            .font(.headline.weight(.semibold))
+            .fontDesign(.rounded)
+            .foregroundStyle(palette.text)
+        }
+
+        let delta = abs(imuSteps - whoop)
+        let pct = whoop > 0 ? Double(delta) / Double(whoop) * 100 : 0
+        if pct > 0 {
+          VStack(alignment: .trailing, spacing: 4) {
+            Text("Δ")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(palette.mutedText)
+            Text("\(delta)")
+              .font(.subheadline.weight(.semibold))
+              .fontDesign(.rounded)
+              .foregroundStyle(pct > 20 ? Color.orange : palette.secondaryText)
+          }
+        }
+      }
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 12)
+    .background(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(palette.surfaceElevated.opacity(0.70))
+        .shadow(color: palette.shadow.opacity(0.20), radius: 4, x: 0, y: 2)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .stroke(palette.separator.opacity(0.44), lineWidth: 1)
+    )
   }
 }

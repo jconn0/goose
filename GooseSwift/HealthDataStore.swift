@@ -78,6 +78,10 @@ final class HealthDataStore {
   // Stored here (extensions cannot add stored properties to @Observable classes).
   var exerciseSessions: [ExerciseSessionDisplayItem] = []
 
+  // IMU-derived step count from K10 gravity zero-crossing (imu_step_count_v1).
+  // Stored here (extensions cannot add stored properties to @Observable classes).
+  var imuStepCountResult: IMUStepCountResult?
+
   static let liveHRVRMSSDDefaultsKey = "goose.swift.liveHRVRMSSD"
   static let liveHRVRRIntervalCountDefaultsKey = "goose.swift.liveHRVRRIntervalCount"
   static let liveHRVRMSSDSampleCountDefaultsKey = "goose.swift.liveHRVRMSSDSampleCount"

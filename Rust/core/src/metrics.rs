@@ -4921,3 +4921,122 @@ pub fn hr_disturbance_count(hr_series: &[(f64, f64)], resting_hr: f64, onset_ts:
     }
     count
 }
+
+// ---------------------------------------------------------------------------
+// IMU-based step count (STEP-UI-01)
+// ---------------------------------------------------------------------------
+
+/// Input for imu_step_count_v1.
+/// `gravity_samples` is a slice of (x_g, y_g, z_g) tuples from the K10 gravity table,
+/// ordered by ts ascending. Units: g (±8 g full-scale typical for WHOOP K10).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ImuStepCountInput {
+    pub gravity_samples: Vec<[f64; 3]>,
+}
+
+/// Output of imu_step_count_v1.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ImuStepCountOutput {
+    pub algorithm_id: String,
+    pub step_count: u64,
+    pub sample_count: usize,
+    pub mean_magnitude: f64,
+    pub insufficient_data: bool,
+}
+
+impl ImuStepCountOutput {
+    fn unknown(sample_count: usize) -> Self {
+        ImuStepCountOutput {
+            algorithm_id: "imu_step_count_v1".to_string(),
+            step_count: 0,
+            sample_count,
+            mean_magnitude: 0.0,
+            insufficient_data: true,
+        }
+    }
+}
+
+/// Estimate step count from K10 gravity samples using the zero-crossing method.
+///
+/// Algorithm (STEP-UI-01):
+/// 1. Compute magnitude = sqrt(x² + y² + z²) per sample.
+/// 2. Subtract the mean (DC removal / high-pass equivalent).
+/// 3. Count positive zero-crossings (negative→positive transitions).
+/// 4. Each positive zero-crossing ≈ 1 step.
+///
+/// The zero-crossing rate on a 25 Hz accelerometer stream produces ~1–3 crossings
+/// per step cycle; we use a divisor of 2 to approximate bilateral (left+right) steps.
+/// Returns `insufficient_data=true` when fewer than 50 samples are provided.
+pub fn imu_step_count_v1(input: &ImuStepCountInput) -> ImuStepCountOutput {
+    let n = input.gravity_samples.len();
+    if n < 50 {
+        return ImuStepCountOutput::unknown(n);
+    }
+
+    // Step 1: compute magnitude per sample.
+    let magnitudes: Vec<f64> = input
+        .gravity_samples
+        .iter()
+        .map(|s| (s[0] * s[0] + s[1] * s[1] + s[2] * s[2]).sqrt())
+        .collect();
+
+    // Step 2: subtract mean (DC removal).
+    let mean = magnitudes.iter().sum::<f64>() / n as f64;
+    let centered: Vec<f64> = magnitudes.iter().map(|&m| m - mean).collect();
+
+    // Step 3: count positive zero-crossings (negative → non-negative).
+    let positive_crossings = centered
+        .windows(2)
+        .filter(|w| w[0] < 0.0 && w[1] >= 0.0)
+        .count();
+
+    // Step 4: one step ≈ one positive zero-crossing.
+    let step_count = positive_crossings as u64;
+
+    ImuStepCountOutput {
+        algorithm_id: "imu_step_count_v1".to_string(),
+        step_count,
+        sample_count: n,
+        mean_magnitude: mean,
+        insufficient_data: false,
+    }
+}
+
+#[cfg(test)]
+mod imu_step_count_tests {
+    use super::*;
+
+    #[test]
+    fn test_imu_step_count_insufficient_data() {
+        let input = ImuStepCountInput { gravity_samples: vec![[1.0, 0.0, 0.0]; 10] };
+        let out = imu_step_count_v1(&input);
+        assert!(out.insufficient_data);
+        assert_eq!(out.step_count, 0);
+    }
+
+    #[test]
+    fn test_imu_step_count_zero_motion_no_crossings() {
+        // Constant signal → no zero-crossings after DC removal.
+        let input = ImuStepCountInput { gravity_samples: vec![[0.0, 0.0, 1.0]; 100] };
+        let out = imu_step_count_v1(&input);
+        assert!(!out.insufficient_data, "100 samples must be sufficient");
+        assert_eq!(out.step_count, 0, "constant signal → no crossings");
+    }
+
+    #[test]
+    fn test_imu_step_count_sinusoidal_detects_cycles() {
+        // 200 samples of sine wave → 100 positive zero-crossings.
+        let n = 200;
+        let samples: Vec<[f64; 3]> = (0..n)
+            .map(|i| {
+                let t = i as f64 * std::f64::consts::PI / 50.0;
+                [t.sin(), 0.0, 1.0]
+            })
+            .collect();
+        let input = ImuStepCountInput { gravity_samples: samples };
+        let out = imu_step_count_v1(&input);
+        assert!(!out.insufficient_data);
+        // 200 samples, period=100 samples → 2 full cycles → 2 positive zero-crossings minimum.
+        assert!(out.step_count >= 2, "2 full cycles must yield >=2 steps, got {}", out.step_count);
+    }
+}
