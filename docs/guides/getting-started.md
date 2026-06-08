@@ -51,7 +51,15 @@ cd goose
 3. Choose a simulator or connected iOS 26 device as the run destination.
 4. Press **Run** (⌘R).
 
-The Xcode build phase `Scripts/build_ios_rust.sh` runs automatically before the Swift compile step. It cross-compiles `Rust/core` for the active platform and places the static library at `Rust/$(PLATFORM_NAME)/libgoose_core.a`. This takes a few minutes on the first build; subsequent builds are incremental.
+The Xcode build phase `Scripts/build_ios_rust.sh` runs automatically before the Swift compile step. It cross-compiles `Rust/core` for the active platform and places the static library at `Rust/$(PLATFORM_NAME)/libgoose_core.a`. Cargo's build output lands in `build/rust-target/goose-core/` (overridable via `CARGO_TARGET_DIR`). This takes a few minutes on the first build; subsequent builds are incremental — the script skips the rebuild if no source files under `Rust/core/` have changed.
+
+To skip the Rust build entirely during development (e.g., when iterating on Swift-only changes), set the environment variable before building:
+
+```bash
+GOOSE_SKIP_RUST_CORE_BUILD=1 xcodebuild ...
+```
+
+This is not recommended if you have modified any Rust source files.
 
 ### Build from the command line
 
@@ -152,7 +160,7 @@ docker compose up -d --build
 ```
 
 This starts two containers:
-- `goose-db` — TimescaleDB (PostgreSQL 16) with hypertables for biometric stream data.
+- `goose-db` — TimescaleDB 2.17.2-pg16 (PostgreSQL 16) with hypertables for biometric stream data.
 - `goose-ingest` — FastAPI ingest service, published on host port `8770` by default.
 
 The schema is bootstrapped automatically on first start. Verify the stack is healthy:

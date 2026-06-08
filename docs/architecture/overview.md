@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Architecture Overview
 
-Goose is a two-tier biometric platform. An iOS app captures raw biometric data from a WHOOP wearable over Bluetooth Low Energy and persists it locally in SQLite via a Rust core library. A self-hosted server (FastAPI + TimescaleDB, deployed via Docker Compose) receives decoded biometric streams from the app and provides a read API and a static dashboard. The two tiers are loosely coupled: the iOS app operates fully offline and uploads opportunistically when a server URL and API key are configured.
+Goose is a two-tier biometric platform. An iOS app captures raw biometric data from a WHOOP wearable over Bluetooth Low Energy and persists it locally in SQLite (schema v19) via a Rust core library. A self-hosted server (FastAPI + TimescaleDB, deployed via Docker Compose) receives decoded biometric streams from the app and provides a read API and a static dashboard. The two tiers are loosely coupled: the iOS app operates fully offline and uploads opportunistically when a server URL and API key are configured.
 
 ---
 
@@ -27,7 +27,7 @@ Goose is a two-tier biometric platform. An iOS app captures raw biometric data f
 │                                    (Rust: capture.import)           │
 │                                           │ SQLite write            │
 │                                           ▼                         │
-│                                  goose.sqlite (local)               │
+│                                  goose.sqlite (local, schema v19)   │
 │                                           │                         │
 │                              ┌────────────┴───────────┐            │
 │                              │                        │             │
@@ -66,14 +66,18 @@ Goose is a two-tier biometric platform. An iOS app captures raw biometric data f
 ### Upload path (iOS → server)
 
 1. **GooseUploadService** runs entirely on Swift concurrency detached tasks (`Task.detached(priority: .utility)`) — never on `@MainActor`.
-2. It calls the Rust bridge method `upload.get_recent_decoded_streams` to fetch the last ~30 seconds of decoded streams from SQLite.
+2. It calls the Rust bridge method `upload.get_recent_decoded_streams` to fetch rows where `synced = 0` from SQLite. After a successful POST, it calls `sync.mark_synced` to set `synced = 1` on those row IDs. Rows can also be queried by stream via `sync.rows_pending_upload`.
 3. It POSTs a `DecodedBatch` JSON payload to `POST /v1/ingest-decoded` with a `Bearer` token loaded from the iOS Keychain (`RemoteServerKeychain`). The server URL is stored in `UserDefaults` under the key `goose.remote.serverURL`.
-4. Retry logic: up to 3 attempts with 1 s / 2 s / 4 s backoff. Silent failure after 3 attempts — raw data is already in local SQLite.
+4. Retry logic: up to 3 attempts with 1 s / 2 s / 4 s backoff. Silent failure after 3 attempts — raw data is already in local SQLite and will be retried next trigger.
 5. Upload status (`lastUploadAt`, `pendingBatchCount`) is published back to `@MainActor` via `DispatchQueue.main.async`.
 
 ### Metric score path (on-demand)
 
 `HealthDataStore` (a `@MainActor ObservableObject`) holds its own `GooseRustBridge` instance. It queries Rust `metrics.*` methods on its `packetInputQueue` and `heartRateTimelineQueue` dispatch queues, then publishes results as `@Published` properties consumed by SwiftUI views.
+
+### Exercise detection path
+
+`exercise.detect_sessions` is dispatched through the Rust bridge. It accepts a time-windowed array of HR samples and gravity rows from `gravity2_samples`, applies a dual-gate filter (HR above resting HR margin AND smoothed accelerometer magnitude above motion threshold), groups contiguous active pairs into sessions, and computes per-session metrics: strain, calories (Keytel active EE + resting EE), heart rate zones (Edwards 5-zone based on HRR%), and zone time percentages.
 
 ### Server daily analysis path
 
@@ -89,12 +93,59 @@ When `POST /v1/ingest-decoded` is received, the server calls `daily.compute_day`
 | `GooseBLEClient` | `GooseSwift/GooseBLEClient.swift` + `GooseBLEClient+*.swift` | CoreBluetooth central manager; WHOOP GATT connection and proprietary frame framing; command writes. |
 | `GooseRustBridge` | `GooseSwift/GooseRustBridge.swift` | JSON-RPC envelope over `goose_bridge_handle_json` / `goose_bridge_free_string` (C FFI). Schema: `goose.bridge.request.v1`. Stateless — multiple instances are normal. |
 | `HealthDataStore` | `GooseSwift/HealthDataStore.swift` + `HealthDataStore+*.swift` | `@MainActor` metric query layer. Holds its own `GooseRustBridge`; publishes scored health metrics to SwiftUI views. |
-| `GooseUploadService` | `GooseSwift/GooseUploadService.swift` | Fetches recent decoded streams from Rust, POSTs to `POST /v1/ingest-decoded`. Runs on a dedicated utility queue; never touches `@MainActor` inline. |
+| `GooseUploadService` | `GooseSwift/GooseUploadService.swift` | Fetches pending-upload rows from Rust (`upload.get_recent_decoded_streams`), POSTs to `POST /v1/ingest-decoded`, then marks rows synced via `sync.mark_synced`. Runs on a dedicated utility queue; never touches `@MainActor` inline. |
 | `CaptureFrameWriteQueue` | `GooseSwift/CaptureFrameWriteQueue.swift` | Batches parsed BLE frames and writes them to SQLite via Rust bridge `capture.import_frame_batch`. |
 | `NotificationFrameParser` | `GooseSwift/NotificationFrameParsing.swift` | Delegates raw BLE bytes to Rust for frame reassembly and compact summary extraction. |
 | `OvernightSQLiteMirrorQueue` | `GooseSwift/OvernightSQLiteMirrorQueue.swift` | During overnight guard mode, queues raw notification rows for Rust bridge SQLite insert. |
-| Rust core (`libgoose_core.a`) | `Rust/core/src/bridge.rs` | 58+ dispatched methods: protocol parsing, SQLite persistence, metric algorithms, BLE frame import, export. Entry point: `bridge.rs`. |
+| Rust core (`libgoose_core.a`) | `Rust/core/src/bridge.rs` | 60+ dispatched methods: protocol parsing, SQLite persistence, metric algorithms, BLE frame import, exercise detection, upload sync, export. Entry point: `bridge.rs`. |
 | FastAPI ingest service | `server/ingest/app/main.py` | Bearer-gated REST API: `POST /v1/ingest-decoded`, read endpoints, daily compute. No OpenAPI schema exposed publicly. |
+
+---
+
+## Rust Core Modules
+
+The Rust library (`Rust/core/src/`) is compiled to `libgoose_core.a` and linked into the iOS app via a C FFI pair. Key modules:
+
+| Module | File | Responsibility |
+|---|---|---|
+| `bridge` | `bridge.rs` | FFI dispatch table; routes JSON `method` strings to internal functions; 60+ methods |
+| `protocol` | `protocol.rs` | WHOOP BLE frame parsing; packet reassembly; V24 biometric decode tables |
+| `store` | `store.rs` | SQLite schema (v19); all persistence helpers; `synced` flag management; `V24BiometricBatch` decode |
+| `metrics` | `metrics.rs` | Health algorithm implementations (HRV, recovery, strain scores) |
+| `metric_features` | `metric_features.rs` | Feature extraction layer used by `metrics` |
+| `sleep_staging` | `sleep_staging.rs` | Cole-Kripke actigraphy + HR-aided sleep staging; AASM-compatible epoch classification |
+| `exercise_detection` | `exercise_detection.rs` | Dual-gate (HR + motion) exercise session detection; Edwards 5-zone intensity; Keytel calorie estimation |
+| `energy_rollup` | `energy_rollup.rs` | Daily/hourly active and resting energy rollup; Mifflin-St Jeor RMR; Harris-Benedict RMR |
+| `baselines` | `baselines.rs` | EWMA personal baselines (HRV RMSSD, resting HR); cold-start guard; trust levels |
+| `activity_sessions` | `activity_sessions.rs` | Activity session persistence and querying |
+| `capture_import` | `capture_import.rs` | Batch BLE frame import pipeline |
+| `export` | `export.rs` | ZIP/CSV export of raw frames and decoded streams |
+| `debug_ws_server` | `debug_ws_server.rs` | Local WebSocket debug server (`ws://127.0.0.1:8765`) |
+
+---
+
+## SQLite Schema (v19)
+
+The embedded SQLite database at `ApplicationSupport/GooseSwift/goose.sqlite` is managed by the Rust core. Schema version is declared as `CURRENT_SCHEMA_VERSION = 19` in `store.rs`.
+
+Stream tables with `synced` flag (used by the upload pipeline):
+
+| Table | Content | Synced flag |
+|---|---|---|
+| `hr_samples` | Heart rate BPM samples | Yes |
+| `rr_intervals` | R-R interval data | Yes |
+| `events` | WHOOP event packets | Yes |
+| `battery` | Battery level samples | Yes |
+| `spo2_samples` | SpO2 (V24 decode) | Yes |
+| `skin_temp_samples` | Skin temperature delta (V24 decode) | Yes |
+| `resp_samples` | Respiration rate (V24 decode) | Yes |
+| `gravity` | Raw gravity (legacy) | No |
+| `gravity2_samples` | Accelerometer XYZ from V24 frames | Yes |
+| `exercise_sessions` | Detected exercise sessions | Yes |
+
+The `synced` column (default `0`) is used by the upload pipeline: `upload.get_recent_decoded_streams` reads rows with `synced = 0`; `sync.mark_synced` sets `synced = 1` after a confirmed server POST; `sync.rows_pending_upload` returns pending rows per stream. Pruning (`prune_synced_stream_rows`) only removes rows where `synced = 1`.
+
+`V24BiometricBatch` (`store.rs`) is the Rust struct that groups raw V24 decode fields (SpO2 photodiode counts, skin temp raw ADC, respiration raw ADC) before they are written to their respective tables.
 
 ---
 
@@ -102,21 +153,25 @@ When `POST /v1/ingest-decoded` is received, the server calls `daily.compute_day`
 
 ```
 goose/
-├── GooseSwift/                 iOS app source (Swift/SwiftUI)
+├── GooseSwift/                 iOS app source (Swift/SwiftUI, iOS 26.0)
 │   ├── GooseAppModel*.swift    Central coordinator + extensions
 │   ├── GooseBLEClient*.swift   CoreBluetooth + WHOOP protocol
 │   ├── GooseRustBridge.swift   C FFI bridge (JSON-RPC)
 │   ├── HealthDataStore*.swift  Metric query layer
-│   ├── GooseUploadService.swift Server upload (utility queue)
+│   ├── GooseUploadService.swift Server upload (utility queue, synced-flag aware)
 │   └── *Views.swift / *Screen.swift  SwiftUI UI
 ├── GooseWorkoutLiveActivityExtension/
 │   └── GooseWorkoutLiveActivityWidget.swift  ActivityKit / Dynamic Island
 ├── Rust/core/src/              Rust library (libgoose_core)
-│   ├── bridge.rs               FFI dispatch table (58+ methods)
-│   ├── protocol.rs             WHOOP BLE frame parsing
-│   ├── store.rs                SQLite schema helpers
+│   ├── bridge.rs               FFI dispatch table (60+ methods)
+│   ├── protocol.rs             WHOOP BLE frame parsing + V24 decode tables
+│   ├── store.rs                SQLite schema v19 + synced-flag helpers
 │   ├── metrics.rs              Health algorithm implementations
 │   ├── metric_features.rs      Feature extraction
+│   ├── sleep_staging.rs        Cole-Kripke actigraphy + sleep staging
+│   ├── exercise_detection.rs   Dual-gate exercise detection + calorie estimation
+│   ├── energy_rollup.rs        Daily/hourly energy rollup (Keytel, Mifflin-St Jeor)
+│   ├── baselines.rs            EWMA personal baselines (HRV, RHR)
 │   └── ...                     40+ additional modules
 ├── server/
 │   ├── ingest/app/             FastAPI ingest service
@@ -124,11 +179,11 @@ goose/
 │   │   ├── ingest.py           Raw-frame batch pipeline
 │   │   ├── store.py            Idempotent DB upserts
 │   │   ├── read.py             Read queries
-│   │   └── analysis/           Daily pipeline (sleep/recovery/strain)
+│   │   └── analysis/           Daily pipeline (sleep/recovery/strain/exercise)
 │   ├── db/init.sql             TimescaleDB schema (hypertables)
 │   └── docker-compose.yml      goose-db + goose-ingest services
 ├── Scripts/build_ios_rust.sh   Cross-compile Rust → iOS static libs
-└── GooseSwift.xcodeproj        Xcode project
+└── GooseSwift.xcodeproj        Xcode project (iOS 26.0 deployment target)
 ```
 
 ---
@@ -141,7 +196,7 @@ goose/
 | `com.goose.swift.notification-ingest` | `GooseAppModel` | Initial BLE notification receipt and frame boundary detection |
 | `com.goose.swift.notification-parse` | `GooseAppModel` | Rust frame parsing calls (blocking FFI) |
 | `com.goose.swift.capture-frame-row-build` | `GooseAppModel` | Building SQLite row structs from parsed frames |
-| Swift concurrency detached task (`.utility`) | `GooseUploadService` | Rust bridge `upload.get_recent_decoded_streams` + HTTP upload |
+| Swift concurrency detached task (`.utility`) | `GooseUploadService` | Rust bridge `upload.get_recent_decoded_streams` + HTTP upload + `sync.mark_synced` |
 | `com.goose.swift.health.packet-inputs` | `HealthDataStore` | Metric score queries via Rust bridge |
 | `com.goose.swift.health.heart-rate-timeline` | `HealthDataStore` | Heart rate timeline refresh |
 | `CBCentralManager` queue | CoreBluetooth | BLE delegate callbacks from `GooseBLEClient` |
@@ -154,7 +209,7 @@ goose/
 
 | Store | Location | Owner | Contains |
 |---|---|---|---|
-| `goose.sqlite` | `ApplicationSupport/GooseSwift/goose.sqlite` | Rust core (via `rusqlite`) | All captured BLE frames, decoded biometric samples, metric scores, activity sessions |
+| `goose.sqlite` (schema v19) | `ApplicationSupport/GooseSwift/goose.sqlite` | Rust core (via `rusqlite`) | All captured BLE frames, decoded biometric samples (including V24 streams and gravity2_samples), metric scores, activity sessions, synced flags |
 | `UserDefaults` | iOS system | Swift | Onboarding state, device identity, HR estimates, server URL (`goose.remote.serverURL`), upload enabled flag (`goose.remote.uploadEnabled`) |
 | iOS Keychain | iOS system | `RemoteServerKeychain` | Server API token (service: `goose.remote`, account: `apiKey`) |
 | TimescaleDB | Docker volume `goose-db-data` | Server | Hypertables for HR, RR, events, battery, SpO2, skin temp, respiration, gravity; derived tables for sleep/exercise/daily metrics |
@@ -194,5 +249,7 @@ All `/v1` routes require `Authorization: Bearer <GOOSE_API_KEY>`. The OpenAPI sc
 - **Multiple bridge instances are intentional.** `GooseAppModel`, `HealthDataStore`, `OvernightSQLiteMirrorQueue`, `CaptureFrameWriteQueue`, and `GooseUploadService` each hold their own `GooseRustBridge` instance. The Rust library is stateless across calls; state lives in SQLite.
 - **Database path convention.** The SQLite file is always resolved via `HealthDataStore.defaultDatabasePath()`. Every bridge call that accesses storage must pass `database_path` in its args.
 - **Upload is opt-in.** `GooseUploadService` checks `UserDefaults` key `goose.remote.uploadEnabled` before every upload attempt. An unconfigured or disabled server URL results in a silent no-op — local SQLite is unaffected.
-- **Server ingest is idempotent.** All `store.upsert_*` calls use `ON CONFLICT DO UPDATE` or `DO NOTHING`. The iOS app may upload the same 30 s window multiple times; the server deduplicates by `(device_id, ts)` primary keys on each hypertable.
+- **Synced flag is the upload cursor.** The `synced` INTEGER column (default `0`) on stream tables is the source of truth for upload state. Rows are never deleted while `synced = 0` regardless of age; only `synced = 1` rows are eligible for pruning.
+- **Server ingest is idempotent.** All `store.upsert_*` calls use `ON CONFLICT DO UPDATE` or `DO NOTHING`. The iOS app may upload the same window multiple times; the server deduplicates by `(device_id, ts)` primary keys on each hypertable.
 - **No circular imports.** The `GooseWorkoutLiveActivityExtension` target shares only `WorkoutLiveActivityAttributes.swift` with the main app. It has no access to `GooseAppModel`, `GooseRustBridge`, or any SQLite layer.
+- **iOS deployment target: 26.0.** All Swift source targets `IPHONEOS_DEPLOYMENT_TARGET = 26.0` as set in `GooseSwift.xcodeproj/project.pbxproj`. App marketing version is `0.1.0`.

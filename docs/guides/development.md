@@ -12,7 +12,7 @@ GooseSwift/                    iOS app source — Swift/SwiftUI
 GooseWorkoutLiveActivityExtension/  ActivityKit Live Activity widget
 Rust/core/src/                 Rust static library source
 Rust/core/include/             C bridge header (goose_core_bridge.h)
-Rust/core/tests/               Rust integration tests (42 files)
+Rust/core/tests/               Rust integration tests (45 files)
 Rust/iphoneos/                 Staged libgoose_core.a for device builds
 Rust/iphonesimulator/          Staged libgoose_core.a for simulator builds
 Scripts/build_ios_rust.sh      Xcode build phase — cross-compiles Rust to iOS
@@ -142,23 +142,26 @@ The Rust bridge (`GooseRustBridge.request(...)`) is a **blocking synchronous cal
 
 ### Running tests
 
-The Rust core has 42 integration test files in `Rust/core/tests/`. Run them with Cargo from the `Rust/core` directory:
+The Rust core has 45 integration test files in `Rust/core/tests/`. Run the full test suite with Cargo from the project root or from `Rust/core`:
 
 ```bash
-cd Rust/core
-cargo test
+# From project root
+cargo test -p goose-core
+
+# From Rust/core directory
+cd Rust/core && cargo test
 ```
 
 Run a specific test file:
 
 ```bash
-cargo test --test bridge_tests
+cargo test -p goose-core --test bridge_tests
 ```
 
 Run a single test by name:
 
 ```bash
-cargo test --test bridge_tests test_version
+cargo test -p goose-core --test bridge_tests test_version
 ```
 
 Unit tests within `src/` follow standard Rust conventions (`#[cfg(test)]` blocks). The Cargo target directory defaults to `build/rust-target/goose-core` to keep build products outside the source tree.
@@ -199,6 +202,18 @@ char *goose_core_version_json(void);
 ```
 
 On failure `ok` is `false` and `error: { "code": "method_error", "message": "..." }` is present.
+
+### v5.0 Rust modules
+
+Three modules were added or significantly updated in v5.0. Developers working on metrics should be aware of them:
+
+| Module | File | Purpose |
+|---|---|---|
+| `exercise_detection` | `src/exercise_detection.rs` | Detects exercise sessions from HR and gravity samples using the same constants as `exercise.py` in the server pipeline (`MIN_EXERCISE_MIN = 10 min`, `MERGE_GAP_S = 60 s`, `MOTION_THRESHOLD = 0.20 g`). |
+| `baselines` | `src/baselines.rs` | EWMA personal baseline engine for HRV RMSSD and resting HR. Alpha = 0.10 (10-night memory). Cold-start gate: z-scores are `None` until 4 nights; baseline marked ready after 7 nights; trusted after 14. Reconstructs state from `daily_recovery_metrics` rows — no new SQLite table. |
+| `store` | `src/store.rs` | SQLite schema at version 19 (`CURRENT_SCHEMA_VERSION = 19`). New in v5.0: `exercise_sessions` table and the v19 migration. Schema is applied by `GooseStore::open` on every startup. |
+
+The `exercise_detection_tests.rs` integration test file covers `exercise_detection`. The `store_tests.rs` file verifies the v19 schema version assertion.
 
 ### Adding a new bridge method
 

@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Testing
 
-Goose has three independent test surfaces: the **Rust core** (42 integration test files, runs on Linux and macOS), the **server stack** (pytest suite against FastAPI + TimescaleDB), and the **iOS app** (no automated test target; verified manually with a physical WHOOP device). There is no Swift/XCTest target in the project.
+Goose has three independent test surfaces: the **Rust core** (44 integration test files, 128 passing tests as of v5.0, runs on Linux and macOS), the **server stack** (pytest suite against FastAPI + TimescaleDB), and the **iOS app** (no automated test target; verified manually with a physical WHOOP device). There is no Swift/XCTest target in the project.
 
 ---
 
@@ -9,9 +9,9 @@ Goose has three independent test surfaces: the **Rust core** (42 integration tes
 
 ### Test framework
 
-Cargo's built-in test runner. Integration tests live in `Rust/core/tests/` (42 files). Unit tests are collocated with source modules in `Rust/core/src/`. The crate ships many binaries used by integration tests as CLI fixtures, including `goose-fixture-index`, `goose-parser-fixture-runner`, `goose-capture-import`, `goose-capture-sqlite-import`, `goose-local-health-validation-suite`, `goose-reference-algo-runner`, `goose-property-test-suite`, and others defined in `Rust/core/Cargo.toml`.
+Cargo's built-in test runner. Integration tests live in `Rust/core/tests/` (44 files). Unit tests are collocated with source modules in `Rust/core/src/`. The crate ships many binaries used by integration tests as CLI fixtures, including `goose-fixture-index`, `goose-parser-fixture-runner`, `goose-capture-import`, `goose-capture-sqlite-import`, `goose-local-health-validation-suite`, `goose-reference-algo-runner`, `goose-property-test-suite`, and others defined in `Rust/core/Cargo.toml`.
 
-A `Rust/core/fixtures/` directory provides golden hex frames and synthetic capture data consumed by tests such as `fixture_tests.rs`, `capture_import_tests.rs`, and `protocol_tests.rs`.
+A `Rust/core/fixtures/` directory provides golden hex frames and synthetic capture data (under `fixtures/owned/` and `fixtures/synthetic/`) consumed by tests such as `fixture_tests.rs`, `capture_import_tests.rs`, and `protocol_tests.rs`.
 
 Several integration tests (notably `reference_tests.rs` and `reference_runner_cli_tests.rs`) shell out to `python3` for the external reference adapters in `Rust/core/tools/reference/`. These adapters fall back to hand-derived values when optional science packages (neurokit2, pyHRV, pyactigraphy) are absent, so `python3` must be on `PATH` but a full Python environment is not required.
 
@@ -20,11 +20,11 @@ Several integration tests (notably `reference_tests.rs` and `reference_runner_cl
 From the `Rust/core` directory:
 
 ```bash
-# Full suite — all integration and unit tests
-cargo test --locked
+# Full suite — all integration and unit tests (preferred form)
+cargo test -p goose-core --locked
 
 # Keep going on failure instead of stopping at the first error
-cargo test --locked --no-fail-fast
+cargo test -p goose-core --locked --no-fail-fast
 
 # Library unit tests only (no integration test files)
 cargo test --lib --locked
@@ -42,17 +42,67 @@ Build all targets (library + binaries + tests) without running:
 cargo build --all-targets --locked
 ```
 
+### Integration test file reference
+
+| File | What it covers |
+|------|----------------|
+| `bridge_tests.rs` | C FFI bridge contract; `goose_bridge_handle_json` / `goose_bridge_free_string` |
+| `v24_biometric_bridge_tests.rs` | v24 biometric data through the bridge layer |
+| `v24_biometric_protocol_tests.rs` | v24 BLE protocol parsing for biometric packets |
+| `protocol_tests.rs` | WHOOP GATT protocol frame parsing |
+| `heart_rate_gatt_protocol_tests.rs` | Heart rate GATT characteristic parsing |
+| `command_tests.rs` | BLE command framing and validation |
+| `exercise_detection_tests.rs` | Passive exercise session detection heuristics |
+| `activity_candidates_tests.rs` | Activity candidate identification |
+| `activity_identity_tests.rs` | Activity type identity resolution |
+| `capture_correlation_tests.rs` | Frame capture correlation across sources |
+| `capture_import_tests.rs` | Hex frame import pipeline |
+| `capture_sanitize_tests.rs` | Frame sanitization before import |
+| `fixture_tests.rs` | Golden-file regression across all fixture frames |
+| `store_tests.rs` | SQLite persistence: schema, upsert, hypertable counts |
+| `storage_check_tests.rs` | Database storage integrity checks |
+| `metrics_tests.rs` | Metric computation pipeline end-to-end |
+| `metric_features_tests.rs` | Feature extraction for metric inputs |
+| `metric_readiness_tests.rs` | Metric input readiness gating |
+| `reference_tests.rs` | Algorithm output vs. Python reference adapters |
+| `algorithm_compare_tests.rs` | Cross-algorithm accuracy comparisons |
+| `algo_benchmark_tests.rs` | Performance budget for algorithm runs |
+| `perf_budget_tests.rs` | Latency and memory budgets |
+| `calibration_tests.rs` | Per-user calibration pipeline |
+| `energy_rollup_tests.rs` | Calorie and energy rollup computation |
+| `sleep_validation_tests.rs` | Sleep window detection and staging validation |
+| `health_sync_tests.rs` | Health data sync pipeline |
+| `history_sync_tests.rs` | Historical sync import |
+| `ios_healthkit_boundary_tests.rs` | HealthKit boundary conditions |
+| `step_counter_tests.rs` | Step count accumulation |
+| `step_motion_estimator_tests.rs` | Motion-based step estimation |
+| `step_packet_discovery_tests.rs` | Step packet identification |
+| `timeline_tests.rs` | Event timeline construction |
+| `export_tests.rs` | Raw data export (zip + SHA-256 integrity) |
+| `property_tests.rs` | Property-based correctness tests |
+| `privacy_lint_tests.rs` | PII / privacy lint checks |
+| `ui_coverage_tests.rs` | UI surface coverage audit |
+| `debug_ws_tests.rs` | WebSocket debug server contract |
+| `fake_ble_peripheral_tests.rs` | Simulated BLE peripheral for offline tests |
+| `tooling_inventory_tests.rs` | CLI tooling presence verification |
+| `capture_arrival_plan_cli_tests.rs` | `goose-capture-arrival-plan` CLI output |
+| `command_capture_plan_cli_tests.rs` | `goose-command-capture-plan` CLI output |
+| `local_health_validation_suite_cli_tests.rs` | `goose-local-health-validation-suite` CLI |
+| `metric_feature_report_cli_tests.rs` | `goose-metric-feature-report` CLI |
+| `metric_input_readiness_cli_tests.rs` | `goose-metric-input-readiness` CLI |
+| `reference_runner_cli_tests.rs` | `goose-reference-algo-runner` CLI |
+
 ### Writing new tests
 
 - Integration tests go in `Rust/core/tests/` following the `<domain>_tests.rs` naming pattern (e.g., `store_tests.rs`, `protocol_tests.rs`).
 - Unit tests go inside `src/<module>.rs` under a `#[cfg(test)]` block.
 - Tests that exercise the C bridge use the two-symbol FFI pair: `goose_bridge_handle_json` / `goose_bridge_free_string`. See `tests/bridge_tests.rs` for the pattern.
 - Tests requiring a real SQLite database use `tempfile::NamedTempFile` (already a dev dependency) to create a throwaway path.
-- Hex frame fixtures go in `Rust/core/fixtures/`; document them in `fixtures/README.md`.
+- Hex frame fixtures go in `Rust/core/fixtures/`; owned device captures under `fixtures/owned/`, synthetic data under `fixtures/synthetic/`. Document additions in `fixtures/README.md`.
 
 ### Coverage
 
-No coverage threshold is configured. CI runs `cargo test --locked --no-fail-fast` and `cargo test --lib --locked` as blocking gates.
+No coverage threshold is configured. CI runs `cargo test --locked --no-fail-fast` and `cargo test --lib --locked` as blocking gates. As of v5.0: 128 passing, 0 failing.
 
 ---
 

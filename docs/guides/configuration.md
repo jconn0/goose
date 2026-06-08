@@ -30,9 +30,13 @@ All iOS configuration is done at runtime through the app UI. There is no build-t
 
 When upload is enabled and a URL is configured, the **More > Remote Server** screen shows:
 
-- **Server reachable** — result of a `GET /healthz` check run once per app session.
+- **Server reachable** — result of a `GET /healthz` check. Runs once automatically per app session when upload is enabled; also runs immediately when the user taps **Save**.
 - **Last sync** — timestamp of the most recent successful batch upload, plus the count of records acknowledged by the server.
 - **Pending batches** — count of batches queued but not yet delivered.
+
+### Upload retry behaviour
+
+Each upload batch is attempted up to three times with exponential backoff (1 s, 2 s, 4 s between retries). Failed batches after all retries are discarded silently; the pending batch count is decremented and the status is updated. The upload endpoint is `POST /v1/ingest-decoded`.
 
 ---
 

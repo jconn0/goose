@@ -97,11 +97,10 @@ Do not commit built `.a` archives. The paths `Rust/iphoneos/libgoose_core.a` and
 The Rust test suite runs on any platform (including Linux/CI):
 
 ```bash
-cd Rust/core
-cargo test --locked --no-fail-fast
+cargo test -p goose-core --locked --no-fail-fast
 ```
 
-There are 40+ integration tests in `Rust/core/tests/`. CI runs these automatically on every pull request that touches `Rust/core/` via the `Rust Core CI` workflow (`.github/workflows/rust-core-ci.yml`).
+There are 128 integration tests across 45 files in `Rust/core/tests/`, covering protocol parsing, metric algorithms, storage, BLE simulation, sleep staging, biometric pipeline, and exercise detection. Recent additions include `v24_biometric_bridge_tests.rs`, `v24_biometric_protocol_tests.rs`, and `exercise_detection_tests.rs`. CI runs these automatically on every pull request that touches `Rust/core/` via the `Rust Core CI` workflow (`.github/workflows/rust-core-ci.yml`).
 
 There is no Swift test target in `GooseSwift.xcodeproj`. iOS behaviour is verified by building and running on simulator or device.
 

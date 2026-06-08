@@ -13,6 +13,32 @@ The app and backend have had very little attention put into performance. The app
 
 Goose is a local-first WHOOP data and health metrics project. The iOS app connects to WHOOP bands, routes packet data through the Goose Rust core, and turns that data into daily health, recovery, sleep, strain, stress, cardio, energy, coach, and debug views. An optional self-hosted server lets you persist decoded biometric streams outside the device.
 
+## What Shipped in v5.0
+
+v5.0 is the first milestone where the full biometric pipeline is closed end to end.
+
+**Algorithms and metrics**
+
+- HRV accuracy: BLE-gap aware RMSSD computation with ectopic beat filter.
+- Sleep staging: Cole-Kripke activity-count classifier and 4-class AASM stage model (Wake / REM / Light / Deep).
+- Strain and calories: Ghidra-confirmed WHOOP coefficients for strain score and calorie expenditure.
+- Readiness Engine v1: ACWR (acute:chronic workload ratio) with Foster monotony over a 28-day strain window; outputs a readiness level and zone (optimal / rundown / primed).
+
+**Biometric decode**
+
+- V24 packet decode for SpO2, skin temperature, respiration rate, and gravity2 streams.
+- Exercise detection from the decoded biometric stream.
+
+**Upload sync infrastructure**
+
+- 10 stream tables carry a `synced` flag: `battery`, `events`, `exercise_sessions`, `gravity`, `gravity2_samples`, `hr_samples`, `resp_samples`, `rr_intervals`, `skin_temp_samples`, `spo2_samples`.
+- Pending-upload queries and mark-synced operations are available on all 10 tables.
+
+**Rust core**
+
+- SQLite schema v19.
+- 45 integration test files in `Rust/core/tests/`.
+
 ## Project Layout
 
 ```text
@@ -54,7 +80,7 @@ The current health metric UI draws heavily from [Bevel](https://www.bevel.health
 - CoreBluetooth scan/connect flows for WHOOP 5.0 and WHOOP 4.0 devices.
 - JSON-over-C bridge into the Goose Rust core.
 - Self-hosted server (`server/`): FastAPI + TimescaleDB, Dockerized; supports both device generations via `device_generation` field.
-- Automatic upload of decoded biometric data from iOS to server.
+- Automatic upload of decoded biometric data from iOS to server (10 stream tables with `synced` flag).
 - Health metric surfaces for Sleep, Recovery, Strain, Stress, Cardio Load, Energy Bank, Health Monitor, Packet Inputs, Algorithms, References, and Calibration.
 - HealthKit sleep import and workout write support.
 - Coach surfaces that summarize local metrics and explain missing data.
@@ -64,7 +90,7 @@ The current health metric UI draws heavily from [Bevel](https://www.bevel.health
 ## Requirements
 
 - macOS with Xcode installed.
-- iOS 26 SDK and an iOS 26 capable simulator/device.
+- iOS 26.0 SDK and an iOS 26.0 capable simulator/device.
 - Apple Developer signing configured for the `com.goose.swift` bundle identifier.
 - Rust and Cargo for building the Goose Rust core from the committed `Rust/core` source.
 - iOS Rust targets installed with `rustup`; see the Rust Core Bridge section below.
