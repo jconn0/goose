@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI Wiring, Algorithm Alignment & Parity Validation
-status: planning
+status: active
 last_updated: "2026-06-08T19:07:32.335Z"
 last_activity: 2026-06-08
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-04)
 
 **Core value:** The user captures WHOOP data on iPhone and it is automatically persisted on their personal server — without depending on external infrastructure.
-**Current focus:** Phase 26 — Sleep Staging
+**Current focus:** Phase 36 — Readiness Engine UI
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 36 — Readiness Engine UI
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-08 — Milestone v6.0 started
+Status: Roadmap active — ready to plan
+Last activity: 2026-06-08 — Roadmap created; 9 phases defined
 
 ## Performance Metrics
 

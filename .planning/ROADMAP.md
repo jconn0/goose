@@ -7,7 +7,7 @@
 - ✅ **v3.0 Wearable UX, CI Hardening & RTC Sync** — Phases 9-15 (shipped 2026-06-05)
 - ✅ **v4.0 Security, Performance & Coach Expansion** — Phases 16-19 (shipped 2026-06-06)
 - ✅ **v5.0 Metrics Accuracy, IMU & Upstream Fixes** — Phases 20-35 (shipped 2026-06-08)
-- 📋 **v6.0 UI Wiring, Algorithm Alignment & Parity Validation** — Phases 36-44 (backlog)
+- 🚧 **v6.0 UI Wiring, Algorithm Alignment & Parity Validation** — Phases 36-44 (active)
 
 ## Phases
 
@@ -80,7 +80,7 @@ Known deferred: ALG-HRV-04, ALG-SLP-04, VAL-01 (human gates — require real WHO
 </details>
 
 <details>
-<summary>📋 v6.0 UI Wiring, Algorithm Alignment & Parity Validation (Phases 36-44) — BACKLOG</summary>
+<summary>🚧 v6.0 UI Wiring, Algorithm Alignment & Parity Validation (Phases 36-44) — ACTIVE</summary>
 
 - [ ] **Phase 36: Readiness Engine UI** — RDY-UI-01
 - [ ] **Phase 37: Sleep Staging UI (4-class hypnogram + AASM)** — SLP-UI-01
@@ -400,6 +400,15 @@ Plans:
 | 33. Ghidra Algorithm Audit | v5.0 | 0/0 | Not started | — |
 | 34. Codebase Audit | v5.0 | 0/0 | Not started | — |
 | 35. Cross-Project Review | v5.0 | 0/0 | Not started | — |
+| 36. Readiness Engine UI | v6.0 | 0/TBD | Not started | — |
+| 37. Sleep Staging UI | v6.0 | 0/TBD | Not started | — |
+| 38. V24 Biometrics UI | v6.0 | 0/TBD | Not started | — |
+| 39. Exercise Sessions UI | v6.0 | 0/TBD | Not started | — |
+| 40. Upload Sync UI | v6.0 | 0/TBD | Not started | — |
+| 41. IMU Step Detection UI | v6.0 | 0/TBD | Not started | — |
+| 42. Algorithm Alignment | v6.0 | 0/TBD | Not started | — |
+| 43. HRV Parity Validation | v6.0 | 0/TBD | Not started | — |
+| 44. Sleep Staging Validation | v6.0 | 0/TBD | Not started | — |
 
 ## Backlog
 
