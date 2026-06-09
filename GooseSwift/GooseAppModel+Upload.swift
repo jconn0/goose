@@ -71,6 +71,161 @@ extension GooseAppModel {
     )
   }
 
+  // Imports raw BLE frames from the remote server into the local SQLite via
+  // capture.import_frame_batch. This rebuilds the trust chain (capture_sessions
+  // and raw_evidence) so HRV/Recovery/Strain algorithms unlock without needing
+  // a BLE reconnection on a fresh install.
+  //
+  // Flow:
+  //   1. Fetch device list from /v1/devices
+  //   2. For each device, page through /v1/export/frames/{id} (5,000 frames/page)
+  //   3. For each page, call capture.import_frame_batch which creates capture_sessions
+  //      and inserts raw_evidence rows with a proper trust chain
+  //   4. After all frames are imported, call sync.backfill_streams to derive decoded
+  //      HR/RR streams from the imported frames
+  //
+  // Safe on a fresh install — capture.import_frame_batch is idempotent.
+  func importHistoricalDataFromServer() {
+    let serverURLString = UserDefaults.standard.string(forKey: RemoteServerStorage.serverURL) ?? ""
+    guard !serverURLString.isEmpty, let baseURL = URL(string: serverURLString) else { return }
+    guard let token = (try? RemoteServerKeychain.loadToken()) ?? nil, !token.isEmpty else { return }
+    let db = HealthDataStore.defaultDatabasePath()
+    let bridge = rust
+
+    Task.detached(priority: .utility) { [weak self] in
+      guard let self else { return }
+
+      // Step 1: fetch device list from server
+      var devicesRequest = URLRequest(url: baseURL.appendingPathComponent("v1/devices"))
+      devicesRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+      devicesRequest.timeoutInterval = 10
+      guard let (devData, devResp) = try? await URLSession.shared.data(for: devicesRequest),
+            (devResp as? HTTPURLResponse)?.statusCode == 200,
+            let devJson = try? JSONSerialization.jsonObject(with: devData) as? [[String: Any]]
+      else { return }
+
+      let deviceIDs = devJson.compactMap { $0["device_id"] as? String }
+      guard !deviceIDs.isEmpty else { return }
+
+      var totalFrames = 0
+
+      // Step 2: for each device, page through /v1/export/frames/{id}
+      for deviceID in deviceIDs {
+        var fromTs: Double = 0.0
+        let toTs: Double = Date().timeIntervalSince1970
+        let pageSize = 5000
+
+        repeat {
+          var components = URLComponents(
+            url: baseURL.appendingPathComponent("v1/export/frames/\(deviceID)"),
+            resolvingAgainstBaseURL: false
+          )
+          components?.queryItems = [
+            URLQueryItem(name: "from", value: String(fromTs)),
+            URLQueryItem(name: "to", value: String(toTs)),
+            URLQueryItem(name: "limit", value: String(pageSize)),
+          ]
+          guard let url = components?.url else { break }
+          var request = URLRequest(url: url)
+          request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+          request.timeoutInterval = 60
+
+          guard let (data, response) = try? await URLSession.shared.data(for: request),
+                (response as? HTTPURLResponse)?.statusCode == 200,
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+          else { break }
+
+          let rawFrames = json["frames"] as? [[String: Any]] ?? []
+          guard !rawFrames.isEmpty else { break }
+
+          // Step 3: convert server frames to capture.import_frame_batch format.
+          // evidence_id and frame_id are derived deterministically from the frame data
+          // so repeated imports produce the same IDs (idempotent).
+          let bridgeFrames: [[String: Any]] = rawFrames.compactMap { f in
+            guard let capturedAtUnix = f["captured_at_unix"] as? Double,
+                  let frameHex = f["frame_hex"] as? String else { return nil }
+            let source = f["source"] as? String ?? "ios.corebluetooth.notification"
+            let deviceModel = f["device_model"] as? String ?? "WHOOP 5.0 Goose"
+            let sensitivity = f["sensitivity"] as? String ?? "user-owned-capture"
+            let deviceType = f["device_type"] as? String ?? "GOOSE"
+            // Deterministic evidence_id: "server-import/<deviceID>/<capturedAtMs>/<hexPrefix8>"
+            let capturedAtMs = Int64(capturedAtUnix * 1000)
+            let hexPrefix = String(frameHex.prefix(8))
+            let evidenceID = "server-import/\(deviceID)/\(capturedAtMs)/\(hexPrefix)"
+            let frameID = "\(evidenceID).frame.0"
+            // captured_at for Rust: ISO-8601 UTC string
+            let capturedAtISO = self.isoFromUnix(capturedAtUnix)
+            return [
+              "evidence_id": evidenceID,
+              "frame_id": frameID,
+              "source": source,
+              "captured_at": capturedAtISO,
+              "device_model": deviceModel,
+              "frame_hex": frameHex,
+              "sensitivity": sensitivity,
+              "capture_session_id": NSNull(),
+              "device_type": deviceType,
+            ]
+          }
+
+          if !bridgeFrames.isEmpty {
+            _ = try? bridge.request(
+              method: "capture.import_frame_batch",
+              args: [
+                "database_path": db,
+                "parser_version": "server-import/1.0",
+                "include_timeline_rows": false,
+                "compact_raw_payloads": false,
+                "include_results": false,
+                "frames": bridgeFrames,
+              ]
+            )
+            totalFrames += bridgeFrames.count
+          }
+
+          // Paginate: advance fromTs past the last frame's timestamp.
+          if let lastFrame = rawFrames.last,
+             let lastTs = lastFrame["captured_at_unix"] as? Double,
+             rawFrames.count >= pageSize {
+            fromTs = lastTs + 0.001
+          } else {
+            break
+          }
+        } while true
+
+        // Step 4: backfill decoded HR/RR streams from the imported raw frames.
+        _ = try? bridge.request(
+          method: "sync.backfill_streams",
+          args: [
+            "database_path": db,
+            "device_id": deviceID,
+            "start_ts": 0.0,
+            "end_ts": Date().timeIntervalSince1970,
+          ]
+        )
+      }
+
+      let frames = totalFrames
+      await MainActor.run { [weak self] in
+        self?.ble.record(
+          level: .debug,
+          source: "import.server",
+          title: "import.complete",
+          body: "raw_frames=\(frames) devices=\(deviceIDs.count)"
+        )
+      }
+    }
+  }
+
+  // Converts a Unix timestamp (seconds) to an ISO-8601 UTC string suitable for
+  // the Rust bridge captured_at field format: "YYYY-MM-DDTHH:MM:SS.mmmZ".
+  nonisolated private func isoFromUnix(_ ts: Double) -> String {
+    let date = Date(timeIntervalSince1970: ts)
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter.string(from: date)
+  }
+
   // Explicit health check — always runs regardless of session state.
   // Called after user saves server settings.
   func checkServerHealth() {

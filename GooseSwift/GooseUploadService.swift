@@ -124,12 +124,63 @@ final class GooseUploadService: @unchecked Sendable {
       // Mark hr_samples rows as synced using the rowids from the recent decoded streams.
       // We use sync.rows_pending_upload to get the rowids of hr_samples rows that were just uploaded.
       markHrSamplesSynced(deviceID: deviceID, sinceTimestamp: sinceTimestamp)
+      // Upload raw BLE frames alongside decoded streams. This enables a fresh iOS
+      // install to reconstruct the trust chain via capture.import_frame_batch.
+      await uploadRawFrames(deviceID: deviceID, sinceTimestamp: sinceTimestamp)
     } else {
       logger.debug("upload failed after 3 attempts — discarding batch silently")
     }
     pendingBatchCount = max(0, pendingBatchCount - 1)
     refreshPendingRowCount()
     publishStatus()
+  }
+
+  // Upload raw BLE frames to the server's /v1/ingest-frames endpoint.
+  // Raw frames allow a fresh iOS install to rebuild the trust chain via
+  // capture.import_frame_batch without requiring a BLE reconnection.
+  private func uploadRawFrames(deviceID: UUID, sinceTimestamp: Date) async {
+    guard UserDefaults.standard.bool(forKey: RemoteServerStorage.uploadEnabled) else { return }
+    let rawURL = UserDefaults.standard.string(forKey: RemoteServerStorage.serverURL) ?? ""
+    guard !rawURL.isEmpty, let baseURL = URL(string: rawURL) else { return }
+    guard let token = (try? RemoteServerKeychain.loadToken()) ?? nil, !token.isEmpty else { return }
+
+    let framesResult: [String: Any]
+    do {
+      framesResult = try rust.request(
+        method: "upload.get_raw_frames_for_upload",
+        args: [
+          "database_path": databasePath,
+          "since_ts": sinceTimestamp.timeIntervalSince1970,
+          "limit": 2000,
+        ]
+      )
+    } catch {
+      logger.debug("upload.get_raw_frames_for_upload failed: \(error)")
+      return
+    }
+
+    let frames = framesResult["frames"] as? [Any] ?? []
+    guard !frames.isEmpty else { return }
+
+    let deviceDict: [String: Any] = ["id": deviceID.uuidString, "mac": NSNull(), "name": NSNull()]
+    let payload: [String: Any] = ["device": deviceDict, "frames": frames]
+    guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
+
+    var request = URLRequest(url: baseURL.appendingPathComponent("v1/ingest-frames"))
+    request.httpMethod = "POST"
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = body
+
+    guard let (data, response) = try? await session.data(for: request),
+          let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      logger.debug("uploadRawFrames: server error")
+      return
+    }
+    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+       let inserted = json["inserted"] as? Int {
+      logger.debug("uploadRawFrames: inserted=\(inserted) frames since=\(sinceTimestamp)")
+    }
   }
 
   private func performRequest(_ request: URLRequest) async -> Int? {
