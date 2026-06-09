@@ -2,20 +2,20 @@ import Foundation
 
 @MainActor
 final class PacketMonitorModel: ObservableObject {
-  @Published var lastParsedFrameSummary = "No notification frames parsed"
-  @Published var movementPacketStatus = "No movement packets"
-  @Published var latestWhoopEventStatus = "No WHOOP events"
-  @Published var latestSkinTemperatureCandidateStatus = "No skin temperature events"
-  @Published var latestWhoopDataPacketStatus = "No WHOOP data packets"
-  @Published var latestHistoryTemperatureCandidateStatus = "No history temperature packets"
-  @Published var latestRespiratoryRateCandidateStatus = "No respiratory rate candidates"
-  @Published var latestPulseInformationPacketStatus = "No pulse information packets"
-  @Published var latestOpticalPacketStatus = "No optical packets"
-  @Published var latestRawResearchPacketStatus = "No raw/research packets"
-  @Published var latestRealtimeStatusPacketStatus = "No realtime status packets"
-  @Published var performancePipelineStatus = "No pipeline samples"
-  @Published var liveDeviceDataSummary = "No live WHOOP data points"
-  @Published var recentDeviceSignalPoints: [DeviceSignalPoint] = []
+  @Published private(set) var lastParsedFrameSummary = "No notification frames parsed"
+  @Published private(set) var movementPacketStatus = "No movement packets"
+  @Published private(set) var latestWhoopEventStatus = "No WHOOP events"
+  @Published private(set) var latestSkinTemperatureCandidateStatus = "No skin temperature events"
+  @Published private(set) var latestWhoopDataPacketStatus = "No WHOOP data packets"
+  @Published private(set) var latestHistoryTemperatureCandidateStatus = "No history temperature packets"
+  @Published private(set) var latestRespiratoryRateCandidateStatus = "No respiratory rate candidates"
+  @Published private(set) var latestPulseInformationPacketStatus = "No pulse information packets"
+  @Published private(set) var latestOpticalPacketStatus = "No optical packets"
+  @Published private(set) var latestRawResearchPacketStatus = "No raw/research packets"
+  @Published private(set) var latestRealtimeStatusPacketStatus = "No realtime status packets"
+  @Published private(set) var performancePipelineStatus = "No pipeline samples"
+  @Published private(set) var liveDeviceDataSummary = "No live WHOOP data points"
+  @Published private(set) var recentDeviceSignalPoints: [DeviceSignalPoint] = []
 
   func apply(
     _ snapshot: PacketUIStateSnapshot,

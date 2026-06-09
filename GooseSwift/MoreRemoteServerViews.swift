@@ -7,7 +7,7 @@ final class MoreRemoteServerViewModel: ObservableObject {
   @Published var serverURL: String
   @Published var bearerToken: String
   @Published var uploadEnabled: Bool
-  @Published var urlValidationError: String?
+  @Published private(set) var urlValidationError: String?
   @Published var saveSuccess: Bool = false
 
   init() {
