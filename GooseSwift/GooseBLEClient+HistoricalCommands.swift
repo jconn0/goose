@@ -44,6 +44,7 @@ extension GooseBLEClient {
     historyEndAckQueued = false
     historyEndAckSentThisBurst = false
     pendingHistoryEndAckPayload = nil
+    gen4HistoricalPageSeq = 0
     historyEndReceived = false
     historyCompleteReceived = false
     historyStartReceived = false
@@ -58,6 +59,19 @@ extension GooseBLEClient {
       ? "Polling historical range"
       : (automatic ? "Requesting missed packets" : "Requesting historical packets")
     publishSyncToast(phase: .syncing, detail: toastDetail)
+    // Gen4 ignores firstCommandOverride: the strap requires the cmd 34 → 22 → 23
+    // sequence regardless of caller intent. See docs/gen4-historical-sync.md.
+    if activeDeviceGeneration == .gen4 {
+      record(
+        source: "ble.sync",
+        title: "historical_sync.started",
+        body: "trigger=\(trigger) first=gen4_get_data_range range_only=\(rangeOnly) override_ignored=\(firstCommandOverride?.name ?? "none")"
+      )
+      notifyHistoricalSyncProgress(status: "syncing", detail: "Querying Gen4 page range", terminal: false, failed: false)
+      writeHistoricalCommand(.getDataRange)
+      return
+    }
+
     let firstCommand = firstCommandOverride ?? (requestHistoricalRangeBeforeTransfer ? .getDataRange : .sendHistoricalData)
     if firstCommand == .getDataRange {
       updateHistoricalRangeDebugStatus("started trigger=\(trigger) first=GET_DATA_RANGE")
@@ -84,11 +98,16 @@ extension GooseBLEClient {
       return
     }
 
-    let commandPayload = kind == .historicalDataResult
-      ? pendingHistoryEndAckPayload ?? kind.payload
-      : kind.payload
+    let commandPayload: [UInt8]
+    if kind == .historicalDataResult {
+      commandPayload = pendingHistoryEndAckPayload ?? kind.payload
+    } else if activeDeviceGeneration == .gen4 && (kind == .getDataRange || kind == .sendHistoricalData) {
+      commandPayload = [0x00]
+    } else {
+      commandPayload = kind.payload
+    }
     let sequence = nextHistoricalSequence()
-    let frame = Self.buildV5CommandFrame(
+    let frame = activeDeviceGeneration.buildCommandFrame(
       sequence: sequence,
       command: kind.commandNumber,
       data: commandPayload
@@ -142,6 +161,16 @@ extension GooseBLEClient {
     let sequence = nextHistoricalCommandSequence
     nextHistoricalCommandSequence = nextHistoricalCommandSequence == UInt8.max ? 57 : nextHistoricalCommandSequence + 1
     return sequence
+  }
+
+  // Gen4 cmd 23 args: [flag=0x01][LE32 page_seq][LE32 page_count=16].
+  // Format observed in the official-app PacketLogger capture; the 16-page
+  // batch size matches the strap's per-burst response window.
+  func gen4PageRequestPayload(seq: UInt32) -> [UInt8] {
+    [0x01,
+     UInt8(seq & 0xff), UInt8((seq >> 8) & 0xff),
+     UInt8((seq >> 16) & 0xff), UInt8((seq >> 24) & 0xff),
+     0x10, 0x00, 0x00, 0x00]
   }
 
   func writeType(for characteristic: CBCharacteristic) -> CBCharacteristicWriteType? {

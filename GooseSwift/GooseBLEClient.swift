@@ -237,6 +237,12 @@ import OSLog
     messageStore.messages
   }
   var commandCharacteristic: CBCharacteristic?
+  /// Only mutated and read on the main thread. CoreBluetooth delegates land
+  /// on `coreBluetoothQueue` but every entry point bounces to main via
+  /// `dispatchCoreBluetoothDelegateToMainIfNeeded` before touching this
+  /// property; UI callers (SwiftUI buttons, @MainActor app model paths)
+  /// are already on main.
+  var activeDeviceGeneration: WhoopGeneration = .gen5
   var activeDescriptor: WearableDescriptor?
   var debugMenuCharacteristic: CBCharacteristic?
   var batteryLevelCharacteristic: CBCharacteristic?
@@ -269,6 +275,7 @@ import OSLog
   var historyEndAckQueued = false
   var historyEndAckSentThisBurst = false
   var pendingHistoryEndAckPayload: [UInt8]?
+  var gen4HistoricalPageSeq: UInt32 = 0
   var lastHeartRateLogAt: Date?
   var lastHeartRateLogBPM: Int?
   var lastHeartRateLogSource = ""

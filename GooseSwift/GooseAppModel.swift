@@ -66,6 +66,11 @@ final class GooseAppModel {
   // BLE-thread code must not touch this property directly.
   var connectedDeviceGeneration: String? = nil
 
+  // Set by AppShellView to run the metric-extract pipeline on HealthDataStore
+  // after a sync completes. Kept as a callback because HealthDataStore is
+  // owned by the view layer, not GooseAppModel.
+  var onHistoricalSyncCompleted: (() -> Void)?
+
   let ble: GooseBLEClient
   let packetMonitor = PacketMonitorModel()
   let activitySession = ActivitySessionModel()

@@ -259,7 +259,7 @@ extension GooseBLEClient {
     }
 
     let sequence = nextClockSequence()
-    let frame = Self.buildV5CommandFrame(
+    let frame = activeDeviceGeneration.buildCommandFrame(
       sequence: sequence,
       command: kind.commandNumber,
       data: kind.payload
@@ -358,7 +358,7 @@ extension GooseBLEClient {
     }
 
     let sequence = nextAlarmSequence()
-    let frame = Self.buildV5CommandFrame(
+    let frame = activeDeviceGeneration.buildCommandFrame(
       sequence: sequence,
       command: kind.commandNumber,
       data: kind.payload
@@ -493,7 +493,7 @@ extension GooseBLEClient {
     }
     let sequence = nextSensorCommandSequence
     nextSensorCommandSequence = nextSensorCommandSequence == UInt8.max ? 180 : nextSensorCommandSequence + 1
-    let frame = Self.buildV5CommandFrame(
+    let frame = activeDeviceGeneration.buildCommandFrame(
       sequence: sequence,
       command: command.commandNumber,
       data: command.payload
@@ -983,6 +983,7 @@ extension GooseBLEClient {
     for characteristic in characteristics {
       if shouldUseCommandCharacteristic(characteristic) {
         commandCharacteristic = characteristic
+        activeDeviceGeneration = WhoopGeneration.detect(from: characteristic)
         activeDescriptor = characteristic.uuid.uuidString.lowercased().hasPrefix("61080002")
           ? .whoopGen4 : .whoopGen5
         record(

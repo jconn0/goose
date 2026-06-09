@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppShellView: View {
   @EnvironmentObject private var router: AppRouter
+  @Environment(GooseAppModel.self) private var model
   @State private var healthStore = HealthDataStore()
   @State private var homeHealthPath: [HealthRoute] = []
   @State private var homeSelectedDate = Date()
@@ -15,6 +16,14 @@ struct AppShellView: View {
         }
         .tag(tab)
       }
+    }
+    .onAppear {
+      model.onHistoricalSyncCompleted = {
+        healthStore.runPacketInputs()
+      }
+    }
+    .onDisappear {
+      model.onHistoricalSyncCompleted = nil
     }
   }
 
