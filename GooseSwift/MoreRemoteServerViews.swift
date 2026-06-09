@@ -137,6 +137,26 @@ struct MoreRemoteServerView: View {
               .controlSize(.mini)
             }
           }
+
+          // Row 5: Trust-chain import from server
+          LabeledContent("Import do servidor") {
+            HStack(spacing: 8) {
+              if model.serverImportInProgress {
+                ProgressView().scaleEffect(0.7)
+                Text("A importar…").foregroundStyle(.secondary)
+              } else if let count = model.serverImportLastFrameCount {
+                Text("\(count) frames").foregroundStyle(.green)
+              } else {
+                Text("Não executado").foregroundStyle(.secondary)
+              }
+              Button("Import") {
+                model.importHistoricalDataFromServer()
+              }
+              .buttonStyle(.bordered)
+              .controlSize(.mini)
+              .disabled(model.serverImportInProgress)
+            }
+          }
         }
       }
 

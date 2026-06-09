@@ -86,11 +86,13 @@ extension GooseAppModel {
   //
   // Safe on a fresh install — capture.import_frame_batch is idempotent.
   func importHistoricalDataFromServer() {
+    guard !serverImportInProgress else { return }
     let serverURLString = UserDefaults.standard.string(forKey: RemoteServerStorage.serverURL) ?? ""
     guard !serverURLString.isEmpty, let baseURL = URL(string: serverURLString) else { return }
     guard let token = (try? RemoteServerKeychain.loadToken()) ?? nil, !token.isEmpty else { return }
     let db = HealthDataStore.defaultDatabasePath()
     let bridge = rust
+    serverImportInProgress = true
 
     Task.detached(priority: .utility) { [weak self] in
       guard let self else { return }
@@ -102,10 +104,16 @@ extension GooseAppModel {
       guard let (devData, devResp) = try? await URLSession.shared.data(for: devicesRequest),
             (devResp as? HTTPURLResponse)?.statusCode == 200,
             let devJson = try? JSONSerialization.jsonObject(with: devData) as? [[String: Any]]
-      else { return }
+      else {
+        await MainActor.run { [weak self] in self?.serverImportInProgress = false }
+        return
+      }
 
       let deviceIDs = devJson.compactMap { $0["device_id"] as? String }
-      guard !deviceIDs.isEmpty else { return }
+      guard !deviceIDs.isEmpty else {
+        await MainActor.run { [weak self] in self?.serverImportInProgress = false }
+        return
+      }
 
       var totalFrames = 0
 
@@ -207,6 +215,8 @@ extension GooseAppModel {
 
       let frames = totalFrames
       await MainActor.run { [weak self] in
+        self?.serverImportInProgress = false
+        self?.serverImportLastFrameCount = frames
         self?.ble.record(
           level: .debug,
           source: "import.server",

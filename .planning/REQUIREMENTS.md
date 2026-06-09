@@ -7,27 +7,27 @@
 
 ## Dashboard UI
 
-- [ ] **RDY-UI-01**: O utilizador vê o nível de disponibilidade diário (rundown/strained/balanced/primed) no Recovery dashboard, derivado do ACWR (7d/28d) e do índice de monotonia de Foster implementado no Phase 30
-- [ ] **SLP-UI-01**: O utilizador vê o hipnograma 4-class (wake/light/deep/REM) e as métricas AASM completas (REM latency, TST, eficiência, SOL, WASO por etapa) no Sleep V2 dashboard
-- [ ] **BIO-UI-01**: O utilizador vê SpO2 estimado, temperatura da pele e resp rate no painel de saúde, com badge "não calibrado" obrigatório e skin_contact=false mostrado como "--"
+- [x] **RDY-UI-01**: O utilizador vê o nível de disponibilidade diário (rundown/strained/balanced/primed) no Recovery dashboard, derivado do ACWR (7d/28d) e do índice de monotonia de Foster implementado no Phase 30
+- [x] **SLP-UI-01**: O utilizador vê o hipnograma 4-class (wake/light/deep/REM) e as métricas AASM completas (REM latency, TST, eficiência, SOL, WASO por etapa) no Sleep V2 dashboard
+- [x] **BIO-UI-01**: O utilizador vê SpO2 estimado, temperatura da pele e resp rate no painel de saúde, com badge "não calibrado" obrigatório e skin_contact=false mostrado como "--"
 
 ## Activity UI
 
-- [ ] **EX-UI-01**: O utilizador vê lista de sessões de exercício detectadas automaticamente (Phase 28) com hora de início, duração, calorias kcal, strain score e gráfico de zonas Edwards
-- [ ] **STEP-UI-01**: O utilizador vê a contagem de passos IMU-derivada (zero-crossing na magnitude de gravidade K10) com label "via acelerómetro" distinta do contador oficial WHOOP
+- [x] **EX-UI-01**: O utilizador vê lista de sessões de exercício detectadas automaticamente (Phase 28) com hora de início, duração, calorias kcal, strain score e gráfico de zonas Edwards
+- [x] **STEP-UI-01**: O utilizador vê a contagem de passos IMU-derivada (zero-crossing na magnitude de gravidade K10) com label "via acelerómetro" distinta do contador oficial WHOOP
 
 ## Sync UI
 
-- [ ] **SYNC-UI-01**: O utilizador vê quantas rows estão pendentes de sincronização no More tab e pode forçar um backfill manual; o GooseUploadService marca rows como synced=1 após confirmação do servidor
+- [x] **SYNC-UI-01**: O utilizador vê quantas rows estão pendentes de sincronização no More tab e pode forçar um backfill manual; o GooseUploadService marca rows como synced=1 após confirmação do servidor
 
 ## Algorithm Alignment
 
-- [ ] **ALG-ALIGN-01**: As 3 divergências identificadas no Phase 35 cross-project review vs my-whoop são corrigidas: (1) `goose_recovery_v1` usa Z-score+logística com pesos HRV=0.60, RHR=0.20, resp=0.05, sleep_perf=0.15; Z=0 → ~58%; (2) EWMA baseline alpha corrigido para 0.0483 (14-night half-life) com Winsorização ±3σ; (3) Cole-Kripke usa épocas de 30s (`COLE_KRIPKE_EPOCH_MINUTES = 0.5`)
+- [x] **ALG-ALIGN-01**: As 3 divergências identificadas no Phase 35 cross-project review vs my-whoop são corrigidas: (1) `goose_recovery_v1` usa Z-score+logística com pesos HRV=0.60, RHR=0.20, resp=0.05, sleep_perf=0.15; Z=0 → ~58%; (2) EWMA baseline alpha corrigido para 0.0483 (14-night half-life) com Winsorização ±3σ; (3) Cole-Kripke usa épocas de 30s (`COLE_KRIPKE_EPOCH_MINUTES = 0.5`)
 
 ## Validation (human gates)
 
-- [ ] **VAL-01**: Gate ALG-HRV-04 fechada — Rust `goose_hrv_v0` RMSSD validado contra `my-whoop` Python reference em ≥5 sessões overnight reais capturadas pelo Goose iOS; delta ≤1 ms; resultados documentados em golden fixtures
-- [ ] **VAL-02**: Gate ALG-SLP-04 fechada — classificador 4-class validado com ≥70% de concordância de época em ≥5 sessões overnight vs etapas oficiais WHOOP; resultados tabulados em phase notes
+- [x] **VAL-01**: Gate ALG-HRV-04 fechada — Rust `goose_hrv_v0` RMSSD validado contra `my-whoop` Python reference em ≥5 sessões overnight reais capturadas pelo Goose iOS; delta ≤1 ms; resultados documentados em golden fixtures
+- [x] **VAL-02**: Gate ALG-SLP-04 fechada — classificador 4-class validado com ≥70% de concordância de época em ≥5 sessões overnight vs etapas oficiais WHOOP; resultados tabulados em phase notes
 
 ---
 

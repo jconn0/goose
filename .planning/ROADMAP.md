@@ -82,15 +82,16 @@ Known deferred: ALG-HRV-04, ALG-SLP-04, VAL-01 (human gates — require real WHO
 <details>
 <summary>🚧 v6.0 UI Wiring, Algorithm Alignment & Parity Validation (Phases 36-44) — ACTIVE</summary>
 
-- [ ] **Phase 36: Readiness Engine UI** — RDY-UI-01
-- [ ] **Phase 37: Sleep Staging UI (4-class hypnogram + AASM)** — SLP-UI-01
-- [ ] **Phase 38: V24 Biometrics UI (SpO2, skin temp, resp)** — BIO-UI-01
-- [ ] **Phase 39: Exercise Sessions UI** — EX-UI-01
-- [ ] **Phase 40: Upload Sync UI (mark synced + pending badge)** — SYNC-UI-01
-- [ ] **Phase 41: IMU-based Step Detection UI** — STEP-UI-01
-- [ ] **Phase 42: Algorithm Alignment (recovery formula, EWMA half-life, sleep epoch 30s)** — ALG-ALIGN-01
-- [ ] **Phase 43: HRV Parity Validation (ALG-HRV-04 / VAL-01 human gate)** — VAL-01
-- [ ] **Phase 44: Sleep Staging Validation (ALG-SLP-04 human gate)** — VAL-02
+- [x] **Phase 36: Readiness Engine UI** — RDY-UI-01 — completed 2026-06-08
+- [x] **Phase 37: Sleep Staging UI (4-class hypnogram + AASM)** — SLP-UI-01 — completed 2026-06-08
+- [x] **Phase 38: V24 Biometrics UI (SpO2, skin temp, resp)** — BIO-UI-01 — completed 2026-06-08
+- [x] **Phase 39: Exercise Sessions UI** — EX-UI-01 — completed 2026-06-08
+- [x] **Phase 40: Upload Sync UI (mark synced + pending badge)** — SYNC-UI-01 — completed 2026-06-08
+- [x] **Phase 41: IMU-based Step Detection UI** — STEP-UI-01 — completed 2026-06-08
+- [x] **Phase 42: Algorithm Alignment (recovery formula, EWMA half-life, sleep epoch 30s)** — ALG-ALIGN-01 — completed 2026-06-08
+- [x] **Phase 43: HRV Parity Validation (ALG-HRV-04 / VAL-01 human gate)** — VAL-01 — completed 2026-06-08
+- [x] **Phase 44: Sleep Staging Validation (ALG-SLP-04 human gate)** — VAL-02 — completed 2026-06-08
+- [ ] **Phase 45: Localização pt-PT (tradução completa da UI)** — L10N-01
 
 </details>
 
@@ -208,6 +209,23 @@ Known deferred: ALG-HRV-04, ALG-SLP-04, VAL-01 (human gates — require real WHO
 **Depends on**: Phase 26 (Sleep Staging), Phase 37 (Sleep Staging UI)
 **Requirements**: VAL-02
 **Human gate**: Requer dispositivo WHOOP físico e ≥ 5 noites com dados WHOOP oficiais para comparação
+
+---
+
+### Phase 45: Localização pt-PT (L10N-01)
+
+**Goal**: Todos os textos visíveis na UI da app Goose estão em Português Europeu (pt-PT) — eliminar strings em inglês hardcoded, placeholder texts, labels de estado, e mensagens de erro que ainda não foram traduzidas.
+**Depends on**: Phases 36-44 (UI completa)
+**Requirements**: L10N-01
+**Success Criteria** (what must be TRUE):
+
+  1. **Audit completo** (`L10N-01`): Todos os ficheiros Swift com texto visível ao utilizador auditados; lista exaustiva de strings em inglês produzida
+  2. **Tradução de strings hardcoded**: Todos os `String(localized:)`, `Text(...)`, `Label(...)`, placeholder texts e mensagens de estado convertidos para pt-PT
+  3. **`Localizable.xcstrings` actualizado**: Todas as novas strings adicionadas ao catálogo de localização com tradução pt-PT correcta
+  4. **Revisão terminológica**: Terminologia consistente — "Frequência Cardíaca" (HR), "Variabilidade da FC" (HRV), "Recuperação", "Desgaste", "Sono", etc.
+  5. **Strings de debug/técnicas excluídas**: Textos internos (source codes, bridge method names, log titles) permanecem em inglês — apenas UI visível ao utilizador é traduzida
+
+**Plans**: TBD
 
 ---
 
