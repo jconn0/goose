@@ -66,7 +66,7 @@ Known deferred: ALG-HRV-04 real overnight cross-validation (v7.0), ALG-SLP-04 re
 
 ### 🚧 v7.0 Sync Correctness, Async & Sleep Sync (In Progress)
 
-- [ ] Phase 46: Upload Route Alignment
+- [x] Phase 46: Upload Route Alignment (completed 2026-06-09)
 - [ ] Phase 47: Device ID Namespace Resolution
 - [ ] Phase 48: Upload Sync Race Fix
 - [ ] Phase 49: HealthDataStore Async Migration
@@ -92,7 +92,7 @@ Known deferred: ALG-HRV-04 real overnight cross-validation (v7.0), ALG-SLP-04 re
 **Plans**: 2 plans
 
 - [x] 46-01-PLAN.md — Server: raw_frames table + POST /v1/ingest-frames + UNION read path + round-trip tests
-- [ ] 46-02-PLAN.md — Deploy + live smoke-test + iOS upload/import verification
+- [x] 46-02-PLAN.md — Deploy + live smoke-test + iOS upload/import verification
 
 ---
 
@@ -187,7 +187,7 @@ Known deferred: ALG-HRV-04 real overnight cross-validation (v7.0), ALG-SLP-04 re
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1–45 | v1.0–v6.0 | — | Complete | 2026-06-03 to 2026-06-09 |
-| 46. Upload Route Alignment | v7.0 | 1/2 | In Progress|  |
+| 46. Upload Route Alignment | v7.0 | 2/2 | Complete   | 2026-06-09 |
 | 47. Device ID Namespace | v7.0 | 0/TBD | Not started | — |
 | 48. Upload Sync Race Fix | v7.0 | 0/TBD | Not started | — |
 | 49. HealthDataStore Async | v7.0 | 0/TBD | Not started | — |
