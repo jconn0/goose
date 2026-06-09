@@ -3886,7 +3886,7 @@ fn exercise_detect_sessions_bridge(
     };
     let sessions =
         crate::exercise_detection::detect_exercise_sessions(&hr, &args.gravity_rows, &profile);
-    let warnings: Vec<String> = Vec::new();
+    let mut warnings: Vec<String> = Vec::new();
 
     // Build rows and insert all sessions in a single transaction (PERF-03).
     let rows: Vec<ExerciseSessionRow> = sessions
@@ -3911,8 +3911,7 @@ fn exercise_detect_sessions_bridge(
     let inserted = store
         .insert_exercise_sessions_batch(&rows)
         .unwrap_or_else(|e| {
-            // Batch insert failure is surfaced in warnings; sessions_inserted = 0.
-            let _ = e; // already logged at call site via json response
+            warnings.push(format!("batch insert failed: {e}"));
             0
         });
 
