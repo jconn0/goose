@@ -8,6 +8,7 @@ struct HealthView: View {
   var store: HealthDataStore
   @State private var cachedLandingSnapshots: [HealthMetricSnapshot] = []
   @State private var cachedVitalSnapshots: [HealthMetricSnapshot] = []
+  @State private var bpmRefreshTask: Task<Void, Never>?
 
   var body: some View {
     ScrollView {
@@ -65,7 +66,11 @@ struct HealthView: View {
       refreshSnapshots()
     }
     .onChange(of: model.ble.liveHeartRateBPM) { _, _ in
-      refreshSnapshots()
+      bpmRefreshTask?.cancel()
+      bpmRefreshTask = Task {
+        try? await Task.sleep(for: .milliseconds(500))
+        if !Task.isCancelled { refreshSnapshots() }
+      }
     }
     .onChange(of: store.catalogStatus) { _, _ in
       refreshSnapshots()

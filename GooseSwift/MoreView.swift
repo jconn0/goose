@@ -97,9 +97,13 @@ struct MoreView: View {
     }
     .onAppear {
       model.recordUIAction("page.opened", detail: "More")
-      store.refreshBridgeStatus(model: model)
-      store.refreshRecentCaptureSessions()
       store.refreshRouteStatus(ble: model.ble, model: model)
+      // Defer bridge calls so they don't block the tab-switch animation.
+      Task {
+        try? await Task.sleep(for: .milliseconds(300))
+        store.refreshBridgeStatus(model: model)
+        store.refreshRecentCaptureSessions()
+      }
     }
     .onChange(of: model.ble.connectionState) { _, _ in
       store.refreshRouteStatus(ble: model.ble, model: model)

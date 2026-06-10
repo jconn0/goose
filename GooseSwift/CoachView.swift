@@ -92,6 +92,10 @@ struct CoachView: View {
       healthStore.refreshPacketInputsIfNeeded()
       chat.refreshAuth()
       applyRequestedCoachPromptIfNeeded()
+      refreshCoachSnapshot()
+    }
+    .onChange(of: healthStore.packetScoreStatus) { _, _ in
+      refreshCoachSnapshot()
     }
     .onChange(of: router.codexEmbeddedLoginRequestID) { _, requestID in
       guard requestID > 0, !chat.isSignedIn else {
@@ -132,8 +136,14 @@ struct CoachView: View {
     return chat.loginStatus
   }
 
+  @State private var cachedCoachSnapshot: CoachOverviewSnapshot?
+
   private var coachSnapshot: CoachOverviewSnapshot {
-    CoachOverviewSnapshot.make(healthStore: healthStore, appModel: model)
+    cachedCoachSnapshot ?? CoachOverviewSnapshot.make(healthStore: healthStore, appModel: model)
+  }
+
+  private func refreshCoachSnapshot() {
+    cachedCoachSnapshot = CoachOverviewSnapshot.make(healthStore: healthStore, appModel: model)
   }
 
   private func openChat(prompt: String?) {

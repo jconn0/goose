@@ -12,6 +12,7 @@ struct HomeDashboardView: View {
   @State private var cachedLandingSnapshots: [HealthMetricSnapshot] = []
   @State private var cachedCardioLoadDays: [CardioLoadDay] = []
   @State private var cachedHealthMonitorSnapshots: [HealthMetricSnapshot] = []
+  @State private var bpmRefreshTask: Task<Void, Never>?
 
   var body: some View {
     ScrollView {
@@ -106,7 +107,11 @@ struct HomeDashboardView: View {
       refreshSnapshots()
     }
     .onChange(of: model.ble.liveHeartRateBPM) { _, _ in
-      refreshSnapshots()
+      bpmRefreshTask?.cancel()
+      bpmRefreshTask = Task {
+        try? await Task.sleep(for: .milliseconds(500))
+        if !Task.isCancelled { refreshSnapshots() }
+      }
     }
     .onChange(of: healthStore.catalogStatus) { _, _ in
       refreshSnapshots()
