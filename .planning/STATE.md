@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: Sync Correctness, Async & Sleep Sync
 status: executing
-last_updated: "2026-06-10T15:02:54.331Z"
-last_activity: 2026-06-10 -- Phase 48 execution started
+last_updated: "2026-06-10T15:08:08.359Z"
+last_activity: 2026-06-10 -- Phase 49 execution started
 progress:
   total_phases: 12
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 15
+  completed_plans: 9
   percent: 25
 ---
 
@@ -20,15 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-09)
 
 **Core value:** The user captures WHOOP data on iPhone and it is automatically persisted on their personal server — without depending on external infrastructure. Metrics align with WHOOP from the same raw data.
-**Current focus:** Phase 48 — Upload Sync Race Fix
+**Current focus:** Phase 49 — HealthDataStore Async Migration
 
 ## Current Position
 
 Milestone: v7.0 — Sync Correctness, Async & Sleep Sync
-Phase: 48 (Upload Sync Race Fix) — EXECUTING
-Plan: 1 of 3
+Phase: 49 (HealthDataStore Async Migration) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-06-10 -- Phase 48 execution started
+Last activity: 2026-06-10 -- Phase 49 execution started
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Last activity: 2026-06-10 -- Phase 48 execution started
 | Phase 29 P02 | 15 | 2 tasks | 2 files |
 | Phase 47 P01 | 55 | 2 tasks (TDD) | 19 files |
 | Phase 47 P03 | 3 | 2 tasks | 6 files |
+| Phase 49 P01 | 2 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,7 @@ Recent decisions affecting current work:
 - Phase 29 Plan 02: ParsedPayload uses #[serde(tag = "kind", rename_all = "snake_case")] — internally tagged; test fixtures must use {"kind":"data_packet",...} not {"DataPacket":{...}}
 - Phase 29 Plan 02: GooseError has no From<serde_json::Error>; use json!{} macro for infallible struct serialisation in bridge handlers
 - Phase 47 Plan 01: device_uuid uses Option<&'a str> on RawEvidenceInput (not Option<String>); index references captured_at (not ts — raw_evidence has no ts column); PRAGMA user_version not bumped; existing callsites use device_uuid: None (backward compatible)
+- [Phase ?]: Phase 49 Plan 01: requestAsync/requestValueAsync added as additive wrappers (Task.detached) so sync FFI never runs on @MainActor; nonisolated(unsafe) on lastTiming not needed (build clean)
 
 ### Pending Todos
 
@@ -170,6 +172,6 @@ Items acknowledged and deferred at v5.0 milestone close on 2026-06-08:
 
 ## Session Continuity
 
-Last session: 2026-06-10T14:38:09.380Z
+Last session: 2026-06-10T15:08:08.354Z
 Status: v7.0 STARTED — REQUIREMENTS.md (12 requisitos) + ROADMAP.md (Phases 46-51) criados
 Next: /gsd-discuss-phase 46 ou /gsd-plan-phase 46 — Upload Route Alignment

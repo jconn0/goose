@@ -161,7 +161,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 49-01-PLAN.md — GooseRustBridge: additive async requestAsync/requestValueAsync (Task.detached FFI)
+- [x] 49-01-PLAN.md — GooseRustBridge: additive async requestAsync/requestValueAsync (Task.detached FFI)
 
 **Wave 2** *(parallel — zero inter-plan file overlap; blocked on 49-01)*
 
@@ -220,7 +220,7 @@ Plans:
 | 46. Upload Route Alignment | v7.0 | 2/2 | Complete   | 2026-06-09 |
 | 47. Device ID Namespace | v7.0 | 3/3 | Complete   | 2026-06-10 |
 | 48. Upload Sync Race Fix | v7.0 | 3/3 | Complete   | 2026-06-10 |
-| 49. HealthDataStore Async | v7.0 | 0/TBD | Not started | — |
+| 49. HealthDataStore Async | v7.0 | 1/7 | In Progress|  |
 | 50. Morning Band Sleep Sync | v7.0 | 0/TBD | Not started | — |
 | 51. Validation Gates (human) | v7.0 | 0/TBD | Blocked (human gate) | — |
 
