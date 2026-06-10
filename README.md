@@ -49,11 +49,14 @@ v5.0 is the first milestone where the full biometric pipeline is closed end to e
 
 ```text
 GooseSwift/                         SwiftUI app source
+GooseSwiftTests/                    XCTest suite for Swift components
 GooseWorkoutLiveActivityExtension/  Live Activity widget extension
 Rust/                               iOS static library, headers, per-platform outputs
 Scripts/build_ios_rust.sh           Xcode build phase for the Goose Rust core
 server/                             Self-hosted FastAPI+TimescaleDB server (Docker)
-docs/features/                      Feature specs per app tab (Home, Health, Coach, More)
+docs/guides/                        Getting started, development, testing, configuration guides
+docs/architecture/                  System overview and component diagrams
+docs/api/                           Server API reference
 GooseSwift.xcodeproj                Xcode project
 ```
 
@@ -244,17 +247,6 @@ Guides and reference docs:
 - `docs/guides/configuration.md`: environment variables and server configuration.
 - `docs/architecture/overview.md`: system overview, component diagram, and data flow.
 - `docs/api/reference.md`: server API endpoints, request/response formats, and authentication.
-
-Feature specs in `docs/features/`:
-
-- `home.md`: Home tab contract and remaining work.
-- `health.md`: Health surfaces, metric pages, packet inputs, trends, and acceptance checks.
-- `coach.md`: Coach tab plan and chat architecture notes.
-- `more.md`: operational settings/debug/capture/privacy surfaces.
-- `CodexCoachServer.md`: viability notes for a future Codex-powered coach.
-- `RemainingDataTodo.md`: unresolved data-source and persistence work.
-
-Recovery-specific follow-up work is tracked in `recovery-todo.md`.
 
 ## Contributing
 

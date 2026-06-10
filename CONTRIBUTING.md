@@ -100,9 +100,19 @@ The Rust test suite runs on any platform (including Linux/CI):
 cargo test -p goose-core --locked --no-fail-fast
 ```
 
-There are 128 integration tests across 45 files in `Rust/core/tests/`, covering protocol parsing, metric algorithms, storage, BLE simulation, sleep staging, biometric pipeline, and exercise detection. Recent additions include `v24_biometric_bridge_tests.rs`, `v24_biometric_protocol_tests.rs`, and `exercise_detection_tests.rs`. CI runs these automatically on every pull request that touches `Rust/core/` via the `Rust Core CI` workflow (`.github/workflows/rust-core-ci.yml`).
+There are 45 integration test files in `Rust/core/tests/`, covering protocol parsing, metric algorithms, storage, BLE simulation, sleep staging, biometric pipeline, and exercise detection. Recent additions include `v24_biometric_bridge_tests.rs`, `v24_biometric_protocol_tests.rs`, and `exercise_detection_tests.rs`. CI runs these automatically on every pull request that touches `Rust/core/` via the `Rust Core CI` workflow (`.github/workflows/rust-core-ci.yml`).
 
-There is no Swift test target in `GooseSwift.xcodeproj`. iOS behaviour is verified by building and running on simulator or device.
+### Swift unit tests
+
+The `GooseSwiftTests` target in `GooseSwift.xcodeproj` contains 52 unit tests across 11 files covering upload payload construction, BLE types, HR monitor state, and coach provider logic. Run them from Xcode (Product → Test) or via `xcodebuild test`:
+
+```bash
+xcodebuild test \
+  -project GooseSwift.xcodeproj \
+  -scheme GooseSwift \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -derivedDataPath /tmp/goose-swift-deriveddata
+```
 
 ---
 

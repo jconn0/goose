@@ -35,7 +35,7 @@ When upload is enabled and a URL is configured, the **More > Remote Server** scr
 - **Last sync** — timestamp of the most recent successful batch upload, plus the count of records acknowledged by the server. A **Now** button triggers an immediate manual upload.
 - **Pending batches** — count of batches queued but not yet delivered.
 - **Sync pendente** — count of `hr_samples` rows not yet marked synced. A **Backfill** button replays `sync.backfill_streams` over decoded frames and then uploads.
-- **Import do servidor** — imports raw BLE frames from the server into local SQLite via `capture.import_frame_batch`, rebuilding the trust chain on a fresh install without a BLE reconnection. <!-- VERIFY: server-side endpoint for frame export not found in server/ingest/app/main.py — confirm iOS implementation path and server route before this feature is documented as available -->
+- **Import do servidor** — imports raw BLE frames from the server into local SQLite via `capture.import_frame_batch`, rebuilding the trust chain on a fresh install without a BLE reconnection. The iOS app pages through `GET /v1/export/frames/{deviceID}` (5,000 frames per page) and the **Import** button in **More > Remote Server** triggers `importHistoricalDataFromServer()`.
 
 ### Upload retry behaviour
 

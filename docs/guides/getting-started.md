@@ -213,5 +213,6 @@ The app needs time to accumulate data. Packet data flows into local SQLite as BL
 
 - [docs/guides/configuration.md](configuration.md) — all server environment variables and iOS runtime settings.
 - [docs/architecture/overview.md](../architecture/overview.md) — system architecture, data flow, and component responsibilities.
-- `server/README.md` — server API reference, database schema, and end-to-end verification steps.
+- [docs/api/reference.md](../api/reference.md) — server REST API endpoints, Rust bridge FFI API, request/response formats, and authentication.
+- `server/README.md` — database schema and end-to-end verification steps.
 - `README.md` — project overview, contributing guidelines, and data privacy notes.

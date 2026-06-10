@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Testing
 
-Goose has three independent test surfaces: the **Rust core** (45 integration test files, 128 passing tests as of v5.0, runs on Linux and macOS), the **server stack** (pytest suite against FastAPI + TimescaleDB), and the **iOS app** (no automated test target; verified manually with a physical WHOOP device). There is no Swift/XCTest target in the project.
+Goose has three independent test surfaces: the **Rust core** (45 integration test files, runs on Linux and macOS), the **server stack** (pytest suite against FastAPI + TimescaleDB), and the **iOS app** (XCTest unit suite in `GooseSwiftTests/` with 10 test files and 52 tests, plus manual verification with a physical WHOOP device).
 
 ---
 
@@ -189,7 +189,46 @@ pytest tests/ # integration tests self-manage the TimescaleDB container
 
 ## iOS App
 
-There is no Swift test target in `GooseSwift.xcodeproj`. iOS functionality is verified manually.
+### Test framework
+
+XCTest. The `GooseSwiftTests` unit test target is registered in `GooseSwift.xcodeproj` (product type `com.apple.product-type.bundle.unit-test`). Test files live in `GooseSwiftTests/` — 10 files, 52 test functions as of the current revision.
+
+### Running tests
+
+From Xcode: select the `GooseSwift` scheme, choose a simulator destination, and press **Cmd-U** (Product > Test).
+
+From the command line:
+
+```bash
+xcodebuild test \
+  -project GooseSwift.xcodeproj \
+  -scheme GooseSwift \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -derivedDataPath /tmp/goose-swift-deriveddata
+```
+
+### Test file reference
+
+| File | What it covers |
+|------|----------------|
+| `GooseBLETypesTests.swift` | GATT generation derivation from service UUIDs; connection state helpers |
+| `WearableDescriptorTests.swift` | `WearableDescriptor` command/notification UUID matching for Gen4 and Gen5 |
+| `GooseUploadServiceTests.swift` | `GooseUploadService.buildUploadPayload` — generation field mapping, device-class presence |
+| `HRMonitorStateTests.swift` | HR monitor state transitions |
+| `CoachProviderTests.swift` | `CoachProvider` protocol shape; all-providers registry coverage |
+| `CoachProviderRegistryTests.swift` | `CoachProviderRegistry` provider enumeration and lookup |
+| `ClaudeProviderTests.swift` | Claude provider configuration and authentication state |
+| `GeminiProviderTests.swift` | Gemini provider configuration and authentication state |
+| `CustomEndpointProviderTests.swift` | Custom endpoint provider URL validation |
+| `CoachKeychainTests.swift` | Coach OAuth token Keychain read/write lifecycle |
+
+### Writing new tests
+
+- Place new files in `GooseSwiftTests/` using the `<TypeName>Tests.swift` naming convention.
+- Each file contains a single `final class <TypeName>Tests: XCTestCase`.
+- Use `@testable import GooseSwift` to access internal types.
+- Tests that require `@MainActor` isolation annotate the class with `@MainActor`.
+- Avoid network calls, BLE, and Rust bridge calls in unit tests — use dependency injection or pure-function entry points.
 
 ### Build verification
 
@@ -306,7 +345,7 @@ Runs on every push and PR to `main`, and weekly (Mondays, 08:00 UTC).
 - Covers Swift (`GooseSwift/`) and Python (`server/`) source.
 - Rust is excluded from CodeQL; advisories are handled by `cargo-audit`.
 
-The iOS app is not built or tested in CI — it requires macOS with Xcode and a physical device, neither of which the current workflow matrix provisions.
+The iOS app (`GooseSwiftTests`) is not run in CI. The `GooseSwiftTests` XCTest suite requires macOS with Xcode and a simulator; no GitHub Actions workflow currently provisions that environment for running `xcodebuild test`. The `codeql.yml` workflow does perform static analysis of Swift source on `macos-26` (see below), but does not execute the unit tests.
 
 ### `server-ci.yml` — Server pytest suite
 

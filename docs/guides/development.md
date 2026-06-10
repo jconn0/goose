@@ -79,6 +79,7 @@ GooseAppModel+OvernightRun.swift            Overnight guard
 GooseAppModel+OvernightRecovery.swift       Overnight recovery state
 GooseAppModel+OvernightState.swift          Overnight guard state transitions
 GooseAppModel+PacketPublishing.swift        BLE packet publishing to pipeline
+GooseAppModel+SleepSync.swift               Band sleep session sync from BLE history
 GooseAppModel+Upload.swift                  Server upload trigger
 
 GooseBLEClient.swift                        @Published BLE state + callback vars
@@ -122,9 +123,14 @@ When adding a new concern to `GooseAppModel`, `GooseBLEClient`, or `HealthDataSt
 | `com.goose.swift.notification-ingest` | `GooseAppModel` | Initial BLE notification receipt |
 | `com.goose.swift.notification-parse` | `GooseAppModel` | Rust frame parsing (blocking FFI) |
 | `com.goose.swift.capture-frame-row-build` | `GooseAppModel` | Building SQLite row structs |
+| `com.goose.swift.rust-startup` | `GooseAppModel` | Rust bridge initialisation on app launch |
+| `com.goose.swift.activity-timeline-refresh` | `GooseAppModel` | Activity timeline refresh queries |
+| `com.goose.swift.capture-status-snapshot` | `GooseAppModel` | Capture status snapshot writes |
+| `com.goose.swift.capture-frame-enqueue` | `CaptureFrameWriteQueue` | Frame enqueue and back-pressure |
 | `com.goose.swift.capture-frame-writes` | `CaptureFrameWriteQueue` | SQLite batch writes via Rust |
-| `com.goose.swift.health.packet-inputs` | `HealthDataStore` | Metric score queries |
-| `com.goose.swift.health.heart-rate-timeline` | `HealthDataStore` | HR timeline refresh |
+| `com.goose.swift.corebluetooth` | `GooseBLEClient` | CBCentralManager callbacks |
+| `com.goose.swift.realtime-vitals` | `GooseBLEClient` | Real-time vitals forwarding |
+| `com.goose.swift.diagnostic-log` | `GooseBLEClient` | BLE diagnostic logging |
 
 `GooseUploadService` uses the Swift cooperative thread pool (async/await Tasks) rather than a named `DispatchQueue`.
 

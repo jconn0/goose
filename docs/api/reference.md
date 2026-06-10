@@ -57,11 +57,13 @@ The server runs as a Docker container on the user's personal server. The exact h
 | `GET` | `/healthz` | No | Health check — verifies database connectivity |
 | `POST` | `/v1/ingest` | Yes | Ingest a raw BLE frame batch |
 | `POST` | `/v1/ingest-decoded` | Yes | Ingest pre-decoded biometric streams |
+| `POST` | `/v1/ingest-frames` | Yes | Ingest raw captured BLE frames from iOS (keyed by capture timestamp) |
 | `GET` | `/v1/devices` | Yes | List all registered devices |
 | `GET` | `/v1/batches` | Yes | List raw batches for a device |
 | `GET` | `/v1/batches/{batch_id}/frames` | Yes | Get parsed frames for a raw batch |
 | `GET` | `/v1/summary` | Yes | Count records per stream for a device and time window |
 | `GET` | `/v1/streams/{kind}` | Yes | Query decoded time-series stream data |
+| `GET` | `/v1/export/frames/{device_id}` | Yes | Export raw frames for a device (paginated; used on fresh install) |
 | `POST` | `/v1/compute-daily` | Yes | Compute and persist daily metrics for a device/date |
 | `GET` | `/v1/daily` | Yes | Query daily metrics over a date range |
 | `GET` | `/v1/today` | Yes | Most-recent daily metrics row for a device |
@@ -186,7 +188,95 @@ After ingestion, the server automatically recomputes daily metrics for the affec
 
 ---
 
+#### `POST /v1/ingest-frames`
+
+Ingest a batch of raw BLE frames captured directly by the iOS app. Unlike `POST /v1/ingest`, frames are keyed by capture timestamp and frame hex — duplicate posts (same `device_id + captured_at_unix + frame_hex`) are silently skipped (idempotent). Maximum 5000 frames per request.
+
+Used by `GooseUploadService.uploadRawFrames` on iOS (`GooseSwift/GooseUploadService.swift`).
+
+**Request body:**
+```json
+{
+  "device": {
+    "id": "device-identifier",
+    "mac": "AA:BB:CC:DD:EE:FF",
+    "name": "WHOOP 5.0"
+  },
+  "frames": [
+    {
+      "captured_at_unix": 1700000000.123,
+      "frame_hex": "aabbccdd...",
+      "source": "ble-notification",
+      "device_type": "whoop5",
+      "device_model": "4AXXXXXXXX",
+      "sensitivity": "normal",
+      "device_uuid": "uuid-string"
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `device.id` | string | Yes | Stable device identifier |
+| `device.mac` | string | No | BLE MAC address |
+| `device.name` | string | No | Human-readable device name |
+| `frames[].captured_at_unix` | float | Yes | Unix seconds (fractional) when the frame was captured |
+| `frames[].frame_hex` | string | Yes | Raw BLE frame bytes as a hex string (must be non-empty, even length) |
+| `frames[].source` | string | No | Capture source label (e.g. `"ble-notification"`) |
+| `frames[].device_type` | string | No | Device type string used for protocol parsing |
+| `frames[].device_model` | string | No | Device model/serial identifier |
+| `frames[].sensitivity` | string | No | Capture sensitivity setting |
+| `frames[].device_uuid` | string | No | UUID identifying the BLE peripheral |
+
+**Response (200):**
+```json
+{"inserted": 42, "skipped": 3}
+```
+
+`inserted` is the number of new frames persisted. `skipped` is the number of duplicates detected and ignored.
+
+---
+
 ### Read Endpoints
+
+#### `GET /v1/export/frames/{device_id}`
+
+Export raw frames stored via `POST /v1/ingest-frames` for a device, paginated by timestamp. The iOS app calls this endpoint on a fresh install to seed the local SQLite database via `capture.import_frame_batch`.
+
+**Path parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `device_id` | Device identifier |
+
+**Query parameters:**
+
+| Parameter | Alias | Type | Default | Description |
+|-----------|-------|------|---------|-------------|
+| `from` | `from_` | float | `0.0` | Start Unix timestamp (seconds, fractional) |
+| `to` | `to` | float | `9999999999.0` | End Unix timestamp (seconds, fractional) |
+| `limit` | — | int | `5000` | Max frames to return (1–5000) |
+
+**Response (200):**
+```json
+{
+  "device_id": "device-identifier",
+  "frames": [
+    {
+      "captured_at_unix": 1700000000.123,
+      "frame_hex": "aabbccdd...",
+      "source": "ble-notification",
+      "device_type": "whoop5"
+    }
+  ],
+  "count": 1
+}
+```
+
+Frames are ordered by `captured_at_unix` ascending. Use the `from` parameter with the last returned timestamp to paginate through large histories.
+
+---
 
 #### `GET /v1/devices`
 
