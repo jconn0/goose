@@ -164,7 +164,7 @@ final class HealthDataStore {
     guard packetInputReports.isEmpty, packetInputStatus == "No run" else {
       return
     }
-    runPacketInputs()
+    Task { await self.runPacketInputs() }
   }
 
   func refreshHeartRateTimeline(for date: Date = Date()) {
@@ -204,7 +204,8 @@ final class HealthDataStore {
   func refreshPacketInputsAfterCapture() {
     packetInputRefreshWorkItem?.cancel()
     let workItem = DispatchWorkItem { [weak self] in
-      self?.runPacketInputs()
+      guard let self else { return }
+      Task { await self.runPacketInputs() }
     }
     packetInputRefreshWorkItem = workItem
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: workItem)
@@ -261,10 +262,9 @@ final class HealthDataStore {
     selectedAlgorithmByFamily[family] = algorithmID
   }
 
-  func runPacketInputs(completion: (() -> Void)? = nil) {
+  func runPacketInputs() async {
     guard !packetInputIsRunning else {
       packetInputStatus = "Packet-derived input extraction already running..."
-      completion?()
       return
     }
     packetInputRefreshWorkItem?.cancel()
@@ -274,22 +274,17 @@ final class HealthDataStore {
     let databasePath = databasePath
     packetInputStatus = "Extracting packet-derived inputs..."
 
-    packetInputQueue.async { [weak self] in
-      let result = HealthDataStore.packetInputBridgeReports(databasePath: databasePath)
-      DispatchQueue.main.async { [weak self] in
-        guard let self, self.packetInputRunID == runID else {
-          return
-        }
-        self.packetInputIsRunning = false
-        switch result {
-        case .success(let reports):
-          self.packetInputReports = reports
-          self.packetInputStatus = "Bridge packet-derived inputs extracted"
-        case .failure(let error):
-          self.packetInputStatus = "Bridge input extraction blocked: \(HealthDataStore.shortError(error))"
-        }
-        completion?()
-      }
+    let result = await HealthDataStore.packetInputBridgeReports(databasePath: databasePath)
+    guard packetInputRunID == runID else {
+      return
+    }
+    packetInputIsRunning = false
+    switch result {
+    case .success(let reports):
+      packetInputReports = reports
+      packetInputStatus = "Bridge packet-derived inputs extracted"
+    case .failure(let error):
+      packetInputStatus = "Bridge input extraction blocked: \(HealthDataStore.shortError(error))"
     }
   }
 
@@ -307,10 +302,9 @@ final class HealthDataStore {
 
   func refreshSleepAfterBandSync(packetCount: Int) {
     bandSleepImportStatus = "Band sync captured \(packetCount) packets | extracting sleep inputs..."
-    runPacketInputs { [weak self] in
-      guard let self else {
-        return
-      }
+    Task { [weak self] in
+      guard let self else { return }
+      await self.runPacketInputs()
       self.runSleepScore()
       self.runSleepStaging()
       self.bandSleepImportStatus = "Band sync captured \(packetCount) packets | \(self.packetScoreStatus)"
