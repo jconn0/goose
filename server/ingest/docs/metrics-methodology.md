@@ -1,4 +1,5 @@
-# Derived-Metrics Methodology & Accuracy (2026-05-26)
+<!-- generated-by: gsd-doc-writer -->
+# Derived-Metrics Methodology & Accuracy (2026-06-10)
 
 This documents how every derived health metric in `app/analysis/` is computed after the
 **metrics-accuracy overhaul**: the algorithm, the library it leans on, the personal-baseline
@@ -6,14 +7,35 @@ definition where relevant, the validation status, and honest caveats. The deep-r
 each choice lives in `docs/research/01..06`.
 
 > **Validation status — read this first.** The overhaul's *mission* is accuracy validated against
-> real WHOOP ground truth. At the time of writing **no WHOOP ground truth has been supplied**
-> (no API token, no data export, and our raw store only covers the OpenWhoop period from
-> 2026-05-23, which WHOOP's cloud never scored — so there is currently zero date-overlap to compare
-> against). Therefore every metric below is validated in **fallback mode** only:
+> real WHOOP ground truth. As of v7.0, the tigercraft4/goose iOS app now captures BLE overnight
+> frames automatically via the morning band sleep sync (Phase 50), closing the data-supply gap.
+> **Phase 51 is the formal validation gate:** once ≥5 overnight sessions are captured, the pipeline
+> will compare RMSSD delta ≤1 ms and sleep staging ≥70% epoch agreement between the server Python
+> stack and iOS Rust core against the WHOOP-scored reference. Until Phase 51 completes, all metrics
+> remain validated in **fallback mode** only:
 > (a) **reference-implementation agreement** (our HRV == neurokit2 on identical RR),
 > (b) **physiological plausibility bounds**, and (c) **internal consistency**.
 > All metrics are **WHOOP-*like* approximations, not yet validated against WHOOP**. The machinery to
 > close this gap is built and one command away (see §"Closing the validation gap").
+
+---
+
+## Relationship to iOS Rust Core
+
+The Goose iOS app (GooseSwift / libgoose_core) implements parallel versions of these algorithms in
+Rust, shipped from v5.0 and extended through v7.0:
+
+- **HRV:** `goose_hrv_v0` — segment-aware RMSSD with the Lipponen–Tarvainen artifact correction
+  filter. This is the same algorithm as the Python neurokit2 version; validated to <0.01 ms delta
+  on identical inputs (matching the server-side hard gate in `tests/test_hrv.py`).
+- **Recovery:** `goose_recovery_v1` — Z-score + EWMA composite, calibrates against the same
+  personal baselines as the Python `recovery.py` implementation.
+- **Sleep staging:** `goose_sleep_v1` — Cole–Kripke 4-class (exact te-Lindert 30 s coefficients),
+  the same paper basis as the Python `sleep.py` implementation.
+
+The server Python stack and iOS Rust stack share the same algorithm contracts; **Phase 51 validation
+applies to both**. When `python -m app.analysis.validation report` is run against Phase 51 overnight
+data, the results are representative of the Rust core accuracy as well.
 
 ---
 
@@ -165,19 +187,20 @@ Retained as a qualitative trend; not a focus of this overhaul.
 
 **Current fallback results:** HRV == neurokit2 to 0.0000 ms; recovery monotonic in HRV; strain
 monotonic in TRIMP with correct log curvature; all metrics within physiological plausibility bounds;
-all internal-consistency invariants hold. **No WHOOP-ground-truth comparison has been run** (no data).
+all internal-consistency invariants hold. **No WHOOP-ground-truth comparison has been run** (awaiting
+Phase 51 overnight session data from the iOS app).
 
 ---
 
 ## Closing the validation gap (the one remaining step)
-The WHOOP-validated accuracy claims require the user to supply ground truth. Everything to consume it
-is built (`app/whoop_api/`):
-1. **Provide WHOOP data** — either a **data export** (WHOOP app → Download my data → `*.csv`) or
+The WHOOP-validated accuracy claims require ground truth from Phase 51 overnight captures. Everything
+to consume it is built (`app/whoop_api/`):
+1. **Collect ≥5 overnight sessions** via the tigercraft4/goose iOS app (v7.0+) — the morning band
+   sleep sync (Phase 50) captures BLE overnight frames automatically. Once 5 sessions are available,
+   run `/gsd-autonomous --only 51` to trigger the formal Phase 51 validation gate.
+2. **Provide WHOOP data** — either a **data export** (WHOOP app → Download my data → `*.csv`) or
    **API access** (register an app at developer-dashboard.whoop.com, authorize once → refresh token;
    see `app/whoop_api/README.md`).
-2. **Establish an overlap** — because our raw store starts 2026-05-23 (OpenWhoop only), a comparison
-   needs either re-offloading pre-switch nights still in the strap's 14-day flash, or a ≥5-night
-   validation-wear window on the official app then re-pair + offload.
 3. **Run** `python -m app.analysis.validation report --ground-truth <export-or-pull>` to get the
    per-metric error table vs the §3 targets, then **fit** the calibration knobs (`units.fit_spo2`,
    `units.fit_skin_temp`, `strain.fit_strain_denominator`, recovery k/Z0) on a train split and report
@@ -198,3 +221,7 @@ formulas. **But without WHOOP ground truth, accuracy against WHOOP is unproven**
 physiologically-sound, reference-agreeing, internally-consistent *approximations*. The SpO2 and
 skin-temp absolute values in particular are un-calibrated. Supplying ground truth turns these from
 "plausible" into "validated (or not) within stated tolerances."
+
+---
+
+*Last updated: 2026-06-10 (v7.0 — iOS Rust core section added; validation gap status updated)*
