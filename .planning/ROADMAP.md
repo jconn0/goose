@@ -167,9 +167,9 @@ Plans:
 
 - [x] 49-02-PLAN.md — +PacketInputs (21 calls) + runPacketInputs async
 - [x] 49-03-PLAN.md — +Snapshots (runPacketScores, runSleepScore) + +Recovery (runRecoveryV1)
-- [ ] 49-04-PLAN.md — +StagingSleep (runSleepStaging) + +Readiness (runReadinessV1)
-- [ ] 49-05-PLAN.md — +Exercise + +IMUSteps + +V24Biometrics
-- [ ] 49-06-PLAN.md — +Cardio direct calls + +Utilities helper
+- [x] 49-04-PLAN.md — +StagingSleep (runSleepStaging) + +Readiness (runReadinessV1)
+- [x] 49-05-PLAN.md — +Exercise + +IMUSteps + +V24Biometrics
+- [x] 49-06-PLAN.md — +Cardio direct calls + +Utilities helper
 
 **Wave 3** *(blocked on all Wave 2)*
 
@@ -220,7 +220,7 @@ Plans:
 | 46. Upload Route Alignment | v7.0 | 2/2 | Complete   | 2026-06-09 |
 | 47. Device ID Namespace | v7.0 | 3/3 | Complete   | 2026-06-10 |
 | 48. Upload Sync Race Fix | v7.0 | 3/3 | Complete   | 2026-06-10 |
-| 49. HealthDataStore Async | v7.0 | 3/7 | In Progress|  |
+| 49. HealthDataStore Async | v7.0 | 6/7 | In Progress|  |
 | 50. Morning Band Sleep Sync | v7.0 | 0/TBD | Not started | — |
 | 51. Validation Gates (human) | v7.0 | 0/TBD | Blocked (human gate) | — |
 

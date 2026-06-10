@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: Sync Correctness, Async & Sleep Sync
 status: executing
-last_updated: "2026-06-10T15:21:08.272Z"
-last_activity: 2026-06-10 -- Phase 49 Plan 02 complete
+last_updated: "2026-06-10T16:00:00.000Z"
+last_activity: 2026-06-10 -- Phase 49 Plan 06 complete
 progress:
   total_phases: 12
   completed_phases: 3
   total_plans: 15
-  completed_plans: 11
-  percent: 25
+  completed_plans: 14
+  percent: 27
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-09)
 
 Milestone: v7.0 — Sync Correctness, Async & Sleep Sync
 Phase: 49 (HealthDataStore Async Migration) — EXECUTING
-Plan: 4 of 7
+Plan: 7 of 7
 Status: Ready to execute
-Last activity: 2026-06-10 -- Phase 49 Plan 02 complete
+Last activity: 2026-06-10 -- Phase 49 Plan 06 complete
 
 ## Performance Metrics
 
@@ -84,6 +84,9 @@ Last activity: 2026-06-10 -- Phase 49 Plan 02 complete
 | Phase 49 P01 | 2 | 2 tasks | 1 files |
 | Phase 49 P02 | 8 | 2 tasks | 2 files |
 | Phase 49-healthdatastore-async-migration P03 | 4min | 2 tasks | 6 files |
+| Phase 49-healthdatastore-async-migration P04 | 8min | 2 tasks | 5 files |
+| Phase 49-healthdatastore-async-migration P05 | 2min | 3 tasks | 5 files |
+| Phase 49-healthdatastore-async-migration P06 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -127,6 +130,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 49 Plan 02: packetInputBridgeReports now nonisolated static async (21 awaited calls); runPacketInputs now async func; in-file callers use Task { await } shims; external callers (AppShellView, HealthDashboardViews) deferred to 49-07
 - [Phase ?]: sleepArgs extracted as local let before first await in runPacketScores to avoid redundant merging calls post-suspension
 - [Phase ?]: HealthRecoveryStressViews.swift: runPacketScores+runRecoveryV1 wrapped in Task; runReadinessV1+runV24Biometrics remain bare calls until 49-04/05 migrate them
+- Phase 49 Plan 04: liveStrainReport captured before first await in runReadinessV1 to preserve @MainActor state snapshot; runReadinessV1 merged into existing Task{} in HealthRecoveryStressViews alongside runPacketScores+runRecoveryV1
+- Phase 49 Plan 05: runV24Biometrics merged into existing Task{} in HealthRecoveryStressViews alongside runPacketScores+runRecoveryV1+runReadinessV1; HealthMetricFamilyStrainViews bare calls wrapped in Task{} as minimal shims (full refactor deferred to 49-07)
+- Phase 49 Plan 06: cardioLoadActivitySessions + cardioLoadActivityMetricsByName + sleepScoreReport converted to async; databasePath captured before await; dead-code finding (zero callers) confirmed — no cascade updates required
 
 ### Pending Todos
 
@@ -177,6 +183,6 @@ Items acknowledged and deferred at v5.0 milestone close on 2026-06-08:
 
 ## Session Continuity
 
-Last session: 2026-06-10T15:21:08.266Z
-Status: v7.0 STARTED — REQUIREMENTS.md (12 requisitos) + ROADMAP.md (Phases 46-51) criados
-Next: /gsd-discuss-phase 46 ou /gsd-plan-phase 46 — Upload Route Alignment
+Last session: 2026-06-10T16:00:00.000Z
+Status: Phase 49 Plan 06 complete — cardioLoadActivitySessions + cardioLoadActivityMetricsByName + sleepScoreReport async
+Next: Phase 49 Plan 07 — final cleanup, remove sync bridge API, wrap external callers
