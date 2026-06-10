@@ -4,7 +4,7 @@ import SwiftUI
 import UIKit
 
 extension HealthDataStore {
-  nonisolated static func packetInputBridgeReports(databasePath: String) -> Result<[String: [String: Any]], Error> {
+  nonisolated static func packetInputBridgeReports(databasePath: String) async -> Result<[String: [String: Any]], Error> {
     let bridge = GooseRustBridge()
     let baseArgs: [String: Any] = [
       "database_path": databasePath,
@@ -15,7 +15,7 @@ extension HealthDataStore {
     ]
     do {
       var reports: [String: [String: Any]] = [:]
-      reports["readiness"] = try bridge.request(
+      reports["readiness"] = try await bridge.requestAsync(
         method: "metrics.input_readiness",
         args: [
           "database_path": databasePath,
@@ -26,18 +26,18 @@ extension HealthDataStore {
           "require_scores_ready": true,
         ]
       )
-      reports["motion"] = try bridge.request(method: "metrics.motion_features", args: baseArgs)
-      reports["step_discovery"] = try bridge.request(
+      reports["motion"] = try await bridge.requestAsync(method: "metrics.motion_features", args: baseArgs)
+      reports["step_discovery"] = try await bridge.requestAsync(
         method: "metrics.step_packet_discovery",
         args: baseArgs.merging(["max_candidate_fields": 100]) { _, new in new }
       )
-      reports["step_counter_ingest"] = try bridge.request(
+      reports["step_counter_ingest"] = try await bridge.requestAsync(
         method: "metrics.step_counter_ingest",
         args: baseArgs.merging(["max_candidate_fields": 1_000]) { _, new in new }
       )
-      reports["heart_rate"] = try bridge.request(method: "metrics.heart_rate_features", args: baseArgs)
-      reports["vital_event"] = try bridge.request(method: "metrics.vital_event_features", args: baseArgs)
-      reports["hrv"] = try bridge.request(
+      reports["heart_rate"] = try await bridge.requestAsync(method: "metrics.heart_rate_features", args: baseArgs)
+      reports["vital_event"] = try await bridge.requestAsync(method: "metrics.vital_event_features", args: baseArgs)
+      reports["hrv"] = try await bridge.requestAsync(
         method: "metrics.hrv_features",
         args: baseArgs.merging([
           "min_rr_intervals_to_compute": 2,
@@ -45,31 +45,31 @@ extension HealthDataStore {
           "require_baseline": false,
         ]) { _, new in new }
       )
-      reports["window"] = try bridge.request(method: "metrics.window_features", args: baseArgs)
-      reports["resting_hr"] = try bridge.request(
+      reports["window"] = try await bridge.requestAsync(method: "metrics.window_features", args: baseArgs)
+      reports["resting_hr"] = try await bridge.requestAsync(
         method: "metrics.resting_hr_features",
         args: baseArgs.merging([
           "baseline_min_days": 3,
           "require_baseline": false,
         ]) { _, new in new }
       )
-      reports["resting_hr_rollup"] = try bridge.request(
+      reports["resting_hr_rollup"] = try await bridge.requestAsync(
         method: "metrics.resting_hr_daily_rollup",
         args: restingHeartRateDailyRollupArgs(databasePath: databasePath, writeMetric: true)
       )
-      reports["step_counter_rollup"] = try bridge.request(
+      reports["step_counter_rollup"] = try await bridge.requestAsync(
         method: "metrics.step_counter_daily_rollup",
         args: stepCounterDailyRollupArgs(databasePath: databasePath, writeMetric: true)
       )
-      reports["step_counter_hourly_rollup"] = try bridge.request(
+      reports["step_counter_hourly_rollup"] = try await bridge.requestAsync(
         method: "metrics.step_counter_hourly_rollup",
         args: stepCounterHourlyRollupArgs(databasePath: databasePath, writeMetric: true)
       )
-      reports["activity_unavailable_status"] = try bridge.request(
+      reports["activity_unavailable_status"] = try await bridge.requestAsync(
         method: "metrics.activity_unavailable_daily_status",
         args: activityUnavailableDailyStatusArgs(databasePath: databasePath, writeMetric: true)
       )
-      reports["energy_rollup"] = try bridge.request(
+      reports["energy_rollup"] = try await bridge.requestAsync(
         method: "metrics.energy_daily_rollup",
         args: energyDailyRollupArgs(
           databasePath: databasePath,
@@ -77,7 +77,7 @@ extension HealthDataStore {
           writeMetric: true
         )
       )
-      reports["energy_hourly_rollup"] = try bridge.request(
+      reports["energy_hourly_rollup"] = try await bridge.requestAsync(
         method: "metrics.energy_hourly_rollup",
         args: energyHourlyRollupArgs(
           databasePath: databasePath,
@@ -85,7 +85,7 @@ extension HealthDataStore {
           writeMetric: true
         )
       )
-      reports["energy_unavailable_status"] = try bridge.request(
+      reports["energy_unavailable_status"] = try await bridge.requestAsync(
         method: "metrics.energy_unavailable_daily_status",
         args: energyDailyRollupArgs(
           databasePath: databasePath,
@@ -93,23 +93,23 @@ extension HealthDataStore {
           writeMetric: true
         )
       )
-      reports["recovery_sensor_rollup"] = try bridge.request(
+      reports["recovery_sensor_rollup"] = try await bridge.requestAsync(
         method: "metrics.recovery_sensor_daily_rollup",
         args: recoveryUnavailableDailyStatusArgs(databasePath: databasePath, writeMetric: true)
       )
-      reports["recovery_unavailable_status"] = try bridge.request(
+      reports["recovery_unavailable_status"] = try await bridge.requestAsync(
         method: "metrics.recovery_unavailable_daily_status",
         args: recoveryUnavailableDailyStatusArgs(databasePath: databasePath, writeMetric: true)
       )
-      reports["daily_activity"] = try bridge.request(
+      reports["daily_activity"] = try await bridge.requestAsync(
         method: "metrics.daily_activity_metrics",
         args: dailyActivityMetricListArgs(databasePath: databasePath)
       )
-      reports["hourly_activity"] = try bridge.request(
+      reports["hourly_activity"] = try await bridge.requestAsync(
         method: "metrics.hourly_activity_metrics",
         args: hourlyActivityMetricListArgs(databasePath: databasePath)
       )
-      reports["daily_recovery"] = try bridge.request(
+      reports["daily_recovery"] = try await bridge.requestAsync(
         method: "metrics.daily_recovery_metrics",
         args: dailyRecoveryMetricListArgs(databasePath: databasePath)
       )
