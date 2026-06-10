@@ -16,11 +16,32 @@ final class GooseUploadService: @unchecked Sendable {
   private let databasePath: String
   private let session: URLSession
 
-  // Protected by Swift's cooperative thread pool — only mutated from upload tasks
-  private var lastUploadTimestamp: Date?
-  private var pendingBatchCount: Int = 0
-  private var lastSyncedCount: Int?
-  private var pendingRowCount: Int = 0
+  // Guards the four counter/timestamp properties below.
+  // Mutated from both @MainActor (upload()) and detached tasks (performUpload,
+  // triggerBackfill), so an NSLock is required — Swift's cooperative thread pool
+  // does not guarantee serial execution across multiple detached tasks on multi-core.
+  private let stateLock = NSLock()
+  private var _lastUploadTimestamp: Date?
+  private var _pendingBatchCount: Int = 0
+  private var _lastSyncedCount: Int?
+  private var _pendingRowCount: Int = 0
+
+  private var lastUploadTimestamp: Date? {
+    get { stateLock.withLock { _lastUploadTimestamp } }
+    set { stateLock.withLock { _lastUploadTimestamp = newValue } }
+  }
+  private var pendingBatchCount: Int {
+    get { stateLock.withLock { _pendingBatchCount } }
+    set { stateLock.withLock { _pendingBatchCount = newValue } }
+  }
+  private var lastSyncedCount: Int? {
+    get { stateLock.withLock { _lastSyncedCount } }
+    set { stateLock.withLock { _lastSyncedCount = newValue } }
+  }
+  private var pendingRowCount: Int {
+    get { stateLock.withLock { _pendingRowCount } }
+    set { stateLock.withLock { _pendingRowCount = newValue } }
+  }
 
   var onStatusUpdate: (@MainActor (GooseUploadStatus) -> Void)?
 
@@ -37,7 +58,7 @@ final class GooseUploadService: @unchecked Sendable {
   }
 
   func upload(deviceID: UUID, deviceType: String, sinceTimestamp: Date) {
-    pendingBatchCount += 1
+    stateLock.withLock { _pendingBatchCount += 1 }
     Task.detached(priority: .utility) { [weak self] in
       await self?.performUpload(deviceID: deviceID, deviceType: deviceType, sinceTimestamp: sinceTimestamp)
     }
@@ -45,16 +66,16 @@ final class GooseUploadService: @unchecked Sendable {
 
   private func performUpload(deviceID: UUID, deviceType: String, sinceTimestamp: Date) async {
     guard UserDefaults.standard.bool(forKey: RemoteServerStorage.uploadEnabled) else {
-      pendingBatchCount = max(0, pendingBatchCount - 1)
+      stateLock.withLock { _pendingBatchCount = max(0, _pendingBatchCount - 1) }
       return
     }
     let rawURL = UserDefaults.standard.string(forKey: RemoteServerStorage.serverURL) ?? ""
     guard !rawURL.isEmpty, let baseURL = URL(string: rawURL) else {
-      pendingBatchCount = max(0, pendingBatchCount - 1)
+      stateLock.withLock { _pendingBatchCount = max(0, _pendingBatchCount - 1) }
       return
     }
     guard let token = (try? RemoteServerKeychain.loadToken()) ?? nil, !token.isEmpty else {
-      pendingBatchCount = max(0, pendingBatchCount - 1)
+      stateLock.withLock { _pendingBatchCount = max(0, _pendingBatchCount - 1) }
       return
     }
 
@@ -75,7 +96,7 @@ final class GooseUploadService: @unchecked Sendable {
       )
     } catch {
       logger.debug("upload.get_recent_decoded_streams failed: \(error)")
-      pendingBatchCount = max(0, pendingBatchCount - 1)
+      stateLock.withLock { _pendingBatchCount = max(0, _pendingBatchCount - 1) }
       return
     }
 
@@ -91,7 +112,7 @@ final class GooseUploadService: @unchecked Sendable {
     let hasData = !hr.isEmpty || !rr.isEmpty || !events.isEmpty || !battery.isEmpty
       || !spo2.isEmpty || !skinTemp.isEmpty || !resp.isEmpty || !gravity.isEmpty
     guard hasData else {
-      pendingBatchCount = max(0, pendingBatchCount - 1)
+      stateLock.withLock { _pendingBatchCount = max(0, _pendingBatchCount - 1) }
       return
     }
 
@@ -102,7 +123,7 @@ final class GooseUploadService: @unchecked Sendable {
     let payload = buildUploadPayload(deviceID: deviceID, deviceType: deviceType, streams: streams)
 
     guard let body = try? JSONSerialization.data(withJSONObject: payload) else {
-      pendingBatchCount = max(0, pendingBatchCount - 1)
+      stateLock.withLock { _pendingBatchCount = max(0, _pendingBatchCount - 1) }
       return
     }
 
@@ -134,12 +155,14 @@ final class GooseUploadService: @unchecked Sendable {
       // install to reconstruct the trust chain via capture.import_frame_batch.
       await uploadRawFrames(deviceID: deviceID, sinceTimestamp: sinceTimestamp)
       // Advance the checkpoint only after both decoded and raw uploads have been attempted.
-      lastUploadTimestamp = Date()
-      lastSyncedCount = syncedCount
+      stateLock.withLock {
+        _lastUploadTimestamp = Date()
+        _lastSyncedCount = syncedCount
+      }
     } else {
       logger.warning("upload failed — rows not marked synced, will retry")
     }
-    pendingBatchCount = max(0, pendingBatchCount - 1)
+    stateLock.withLock { _pendingBatchCount = max(0, _pendingBatchCount - 1) }
     refreshPendingRowCount()
     publishStatus()
   }
@@ -326,15 +349,15 @@ final class GooseUploadService: @unchecked Sendable {
         ]
       )
       let rows = report["rows"] as? [[String: Any]] ?? []
-      pendingRowCount = rows.count
+      stateLock.withLock { _pendingRowCount = rows.count }
     } catch {
-      pendingRowCount = 0
+      stateLock.withLock { _pendingRowCount = 0 }
     }
   }
 
   // Trigger manual backfill + upload of all pending streams.
   // Called from the More tab "Sync pendente" button.
-  func triggerBackfill(deviceID: UUID, sinceTimestamp: Date) {
+  func triggerBackfill(deviceID: UUID, deviceType: String, sinceTimestamp: Date) {
     Task.detached(priority: .utility) { [weak self] in
       guard let self else { return }
       // Call sync.backfill_streams to populate hr_samples/rr_intervals from decoded_frames.
@@ -355,17 +378,19 @@ final class GooseUploadService: @unchecked Sendable {
       } catch {
         logger.debug("sync.backfill_streams failed: \(error)")
       }
-      await performUpload(deviceID: deviceID, deviceType: "GOOSE", sinceTimestamp: sinceTimestamp)
+      await performUpload(deviceID: deviceID, deviceType: deviceType, sinceTimestamp: sinceTimestamp)
     }
   }
 
   private func publishStatus() {
-    let status = GooseUploadStatus(
-      lastUploadTimestamp: lastUploadTimestamp,
-      pendingBatchCount: pendingBatchCount,
-      lastSyncedCount: lastSyncedCount,
-      pendingRowCount: pendingRowCount
-    )
+    let status = stateLock.withLock {
+      GooseUploadStatus(
+        lastUploadTimestamp: _lastUploadTimestamp,
+        pendingBatchCount: _pendingBatchCount,
+        lastSyncedCount: _lastSyncedCount,
+        pendingRowCount: _pendingRowCount
+      )
+    }
     Task { @MainActor [weak self] in
       self?.onStatusUpdate?(status)
     }
