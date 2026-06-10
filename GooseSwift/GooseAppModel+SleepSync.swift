@@ -57,6 +57,9 @@ extension GooseAppModel {
     // Write UserDefaults BEFORE any await to prevent retry loops on drop+reconnect.
     UserDefaults.standard.set(Date(), forKey: Self.lastBandSleepSyncDateKey)
 
+    // Own bridge instance to avoid data races with the shared GooseAppModel.rust instance
+    // (GooseRustBridge is @unchecked Sendable with unguarded mutable state).
+    let localRust = GooseRustBridge()
     let store = healthStore
     await store?.markBandSleepSyncRequested(
       automatic: true,
@@ -76,7 +79,7 @@ extension GooseAppModel {
 
     do {
       // SQLite-first check: if >= 100 gravity rows exist, skip BLE historical sync.
-      let gravityResult = try await rust.requestAsync(
+      let gravityResult = try await localRust.requestAsync(
         method: "store.gravity_rows_between",
         args: [
           "database_path": dbPath,
@@ -105,7 +108,7 @@ extension GooseAppModel {
         while attempts < 120 {
           try await Task.sleep(nanoseconds: 1_000_000_000)
           let status = ble.historicalSyncStatus
-          if status == "complete" {
+          if status == "synced" {
             break
           }
           if status == "failed" {
@@ -121,7 +124,7 @@ extension GooseAppModel {
       }
 
       // Run sleep staging on the overnight gravity data.
-      let stagingResult = try await rust.requestAsync(
+      let stagingResult = try await localRust.requestAsync(
         method: "metrics.sleep_staging",
         args: [
           "database_path": dbPath,
@@ -133,9 +136,7 @@ extension GooseAppModel {
 
       let stagingMethod = stagingResult["staging_method"] as? String ?? "no_imu_data"
       guard stagingMethod != "no_imu_data" else {
-        await MainActor.run {
-          healthStore?.bandSleepImportStatus = "A aguardar sincronização"
-        }
+        store?.bandSleepImportStatus = "A aguardar sincronização"
         return
       }
 
@@ -160,7 +161,7 @@ extension GooseAppModel {
       ]
 
       // Insert the external sleep session (idempotent: UNIQUE on platform+platform_record_id).
-      _ = try await rust.requestAsync(
+      _ = try await localRust.requestAsync(
         method: "sleep.import_external_history",
         args: [
           "database_path": dbPath,
@@ -171,9 +172,7 @@ extension GooseAppModel {
 
       // Refresh sleep displays and set success status.
       await store?.refreshSleepAfterBandSync(packetCount: 0)
-      await MainActor.run {
-        healthStore?.bandSleepImportStatus = "Sincronizado da pulseira"
-      }
+      store?.bandSleepImportStatus = "Sincronizado da pulseira"
 
     } catch {
       await store?.markBandSleepSyncFailed("Sleep sync error: \(error)")
