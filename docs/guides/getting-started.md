@@ -103,6 +103,52 @@ xcrun devicectl device process launch \
 
 ---
 
+## Install via AltStore (no Xcode required)
+
+If you do not have a Mac with Xcode, you can sideload Goose using [AltStore](https://altstore.io). This does not require a paid Apple Developer account.
+
+### Prerequisites
+
+- iPhone running iOS 17+ (iOS 26 recommended for full feature parity)
+- A computer (Mac or Windows) with **AltServer** installed — [download at altstore.io](https://altstore.io)
+- AltStore installed on your iPhone via AltServer
+
+### 1. Add the Goose source in AltStore
+
+1. Open **AltStore** on your iPhone.
+2. Tap **Browse** at the bottom.
+3. Tap **Sources** (top right) → tap **+**.
+4. Enter the source URL:
+   ```
+   https://raw.githubusercontent.com/tigercraft4/goose/main/altstore-source.json
+   ```
+5. Tap **Add Source**.
+
+Goose will appear in the Browse tab under the added source.
+
+### 2. Install
+
+Tap **Goose** → **Free** → enter your Apple ID credentials when prompted. AltStore re-signs the IPA with your personal Apple ID and installs it.
+
+### 3. Keep the app active
+
+Apps installed via a free Apple ID expire after **7 days**. To refresh:
+
+- Open AltStore while your iPhone is on the same Wi-Fi network as AltServer, or connect via USB.
+- Tap **My Apps** → **Refresh All**.
+
+A paid Apple Developer account ($99/year) eliminates the 7-day limit.
+
+### Manual install (without a source)
+
+You can also install any release IPA directly:
+
+1. Download `GooseSwift-<version>-unsigned.ipa` from the [Releases page](https://github.com/tigercraft4/goose/releases).
+2. Transfer it to your iPhone via AirDrop or the Files app.
+3. Tap the `.ipa` file and choose **Open in AltStore**.
+
+---
+
 ## First run — onboarding and permissions
 
 On first launch, Goose walks you through:
