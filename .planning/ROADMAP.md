@@ -157,7 +157,23 @@ Plans:
   4. `xcodebuild test` verde (ou build sem erros de compilação se não houver testes Swift)
   5. Xcode console não mostra "Publishing changes from background threads" após a migração
 
-**Plans**: TBD
+**Plans**: 7 plans (3 waves)
+Plans:
+**Wave 1**
+
+- [ ] 49-01-PLAN.md — GooseRustBridge: additive async requestAsync/requestValueAsync (Task.detached FFI)
+
+**Wave 2** *(parallel — zero inter-plan file overlap; blocked on 49-01)*
+
+- [ ] 49-02-PLAN.md — +PacketInputs (21 calls) + runPacketInputs async
+- [ ] 49-03-PLAN.md — +Snapshots (runPacketScores, runSleepScore) + +Recovery (runRecoveryV1)
+- [ ] 49-04-PLAN.md — +StagingSleep (runSleepStaging) + +Readiness (runReadinessV1)
+- [ ] 49-05-PLAN.md — +Exercise + +IMUSteps + +V24Biometrics
+- [ ] 49-06-PLAN.md — +Cardio direct calls + +Utilities helper
+
+**Wave 3** *(blocked on all Wave 2)*
+
+- [ ] 49-07-PLAN.md — Remove queues, refreshBridgeCatalogs async, Task debounce, wrap all external callers, remove sync bridge API, build + dashboard smoke test
 
 ---
 

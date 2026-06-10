@@ -659,17 +659,13 @@ No new threat patterns introduced.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **cardioLoadAlgorithmSummary call context**
-   - What we know: `cardioLoadActivitySessions` is called from within `cardioLoadAlgorithmSummary` (or its call chain)
-   - What's unclear: Whether `cardioLoadAlgorithmSummary` is called directly from a SwiftUI View body (which cannot be async)
-   - Recommendation: In Plan 6, trace the full Cardio call chain before migrating. If called from View body, cache results in a @Published property and add a `runCardioLoad()` async trigger.
+1. **cardioLoadAlgorithmSummary call context** — RESOLVED
+   - Resolution: Verified by grep — `cardioLoadAlgorithmSummary`, `cardioLoadActivitySessions`, and `cardioLoadActivityMetricsByName` have ZERO live callers in the codebase. These methods are dead code with no SwiftUI View body callers. Making them async causes no cascade issues. Plan 06 can migrate these freely.
 
-2. **lastTiming data race in GooseRustBridge**
-   - What we know: `lastTiming` is written inside `requestValue` (runs on detached task), readable from @MainActor — technically a race on @unchecked Sendable
-   - What's unclear: Whether any code reads `lastTiming` on @MainActor after migration
-   - Recommendation: Add `nonisolated(unsafe)` to `lastTiming` OR remove it (it was an internal diagnostic). Check usage in Plan 1.
+2. **lastTiming data race in GooseRustBridge** — RESOLVED
+   - Resolution: `lastTiming` is marked `@ObservationIgnored` and used only in diagnostic timing output within GooseRustBridge itself. No @MainActor code reads `lastTiming` after bridge calls. Plan 01 adds `nonisolated(unsafe)` to `lastTiming` as a precaution, consistent with the pattern already used for `heartRateSeriesUpdateObserver` in HealthDataStore.
 
 ---
 
