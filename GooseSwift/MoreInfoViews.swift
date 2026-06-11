@@ -3,6 +3,11 @@ import SwiftUI
 
 struct MorePrivacyView: View {
   @ObservedObject var store: MoreDataStore
+  @State private var showingDeleteConfirm = false
+  @State private var dbURL: URL? = {
+    let path = HealthDataStore.defaultDatabasePath()
+    return FileManager.default.fileExists(atPath: path) ? URL(fileURLWithPath: path) : nil
+  }()
 
   var body: some View {
     List {
@@ -21,12 +26,37 @@ struct MorePrivacyView: View {
         }
         .disabled(store.rawBundlePath == "No bundle")
 
-        MoreActionRow(title: "Data Export Link", detail: "Use Raw Export after a local database exists", systemImage: "square.and.arrow.up", status: store.databaseExists ? .pending : .unavailable, disabled: true) {}
-        MoreActionRow(title: "Data Deletion Link", detail: store.deletionStatus, systemImage: "trash", status: .blocked, disabled: true) {}
+        if let url = dbURL {
+          ShareLink(item: url) {
+            Label("Export Local Database", systemImage: "square.and.arrow.up")
+          }
+        } else {
+          MoreInfoRow(title: "Data Export", value: "Database not found", systemImage: "square.and.arrow.up", status: .unavailable)
+        }
+
+        Button(role: .destructive) {
+          showingDeleteConfirm = true
+        } label: {
+          Label("Delete All Local Data", systemImage: "trash")
+        }
+        .disabled(!store.databaseExists)
       }
     }
     .gooseListBackground()
     .navigationTitle("Privacy")
+    .confirmationDialog(
+      "Eliminar todos os dados locais?",
+      isPresented: $showingDeleteConfirm,
+      titleVisibility: .visible
+    ) {
+      Button("Eliminar", role: .destructive) {
+        store.deleteLocalDatabase()
+        dbURL = nil
+      }
+      Button("Cancelar", role: .cancel) {}
+    } message: {
+      Text("Esta acção remove a base de dados SQLite local e não pode ser desfeita. Os dados no servidor não são afectados.")
+    }
   }
 }
 

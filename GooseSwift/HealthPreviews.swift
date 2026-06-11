@@ -107,6 +107,41 @@ struct HealthPreviewRouteHost: View {
   HealthPreviewRouteHost(route: .calibration, state: .populated)
 }
 
+// MARK: - PREV-01: Home / Coach / More previews
+
+#Preview("Home — Disconnected") {
+  NavigationStack {
+    HomeDashboardView(
+      healthStore: HealthDataStore(),
+      selectedDate: .constant(Date()),
+      openHealthRoute: { _ in }
+    )
+  }
+  .environment(GooseAppModel(startBLE: false))
+  .environmentObject(AppRouter())
+}
+
+#Preview("Home — Populated") {
+  let store = HealthDataStore()
+  NavigationStack {
+    HomeDashboardView(
+      healthStore: store,
+      selectedDate: .constant(Date()),
+      openHealthRoute: { _ in }
+    )
+  }
+  .environment(GooseAppModel(startBLE: false))
+  .environmentObject(AppRouter())
+}
+
+#Preview("More — Default") {
+  NavigationStack {
+    MoreView(healthStore: HealthDataStore())
+  }
+  .environment(GooseAppModel(startBLE: false))
+  .environmentObject(AppRouter())
+}
+
 #Preview("Calibration - Missing") {
   HealthPreviewRouteHost(route: .calibration, state: .missing)
 }

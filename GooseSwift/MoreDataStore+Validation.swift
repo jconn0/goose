@@ -84,6 +84,16 @@ extension MoreDataStore {
     runRawExport()
   }
 
+  func deleteLocalDatabase() {
+    let path = HealthDataStore.defaultDatabasePath()
+    do {
+      try FileManager.default.removeItem(atPath: path)
+      deletionStatus = "Deleted: \(URL(fileURLWithPath: path).lastPathComponent)"
+    } catch {
+      deletionStatus = "Delete failed: \(error.localizedDescription)"
+    }
+  }
+
   func saveLocalDataBundle() {
     guard !localExportInProgress else {
       localExportStatus = "Local export already running"

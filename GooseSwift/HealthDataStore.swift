@@ -247,6 +247,10 @@ final class HealthDataStore {
     selectedAlgorithmByFamily[family] = algorithmID
   }
 
+  // HALG-01: Named shims over existing catalog state — wired to bridge catalog loaded by loadBridgeCatalogsIfNeeded().
+  var algorithmPreferences: [String: String] { selectedAlgorithmByFamily }
+  var referenceAlgorithmDefinitions: [HealthAlgorithmDefinition] { referenceDefinitions }
+
   func runPacketInputs() async {
     guard !packetInputIsRunning else {
       packetInputStatus = "Packet-derived input extraction already running..."
