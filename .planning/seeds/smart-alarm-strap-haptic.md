@@ -5,15 +5,16 @@ metadata:
   type: seed
   trigger_condition: when planning v10.0 milestone scope
   planted_date: 2026-06-11
+  updated_date: 2026-06-11
 ---
 
 ## Idea
 
 Implement a smart alarm that writes a wake window schedule to the WHOOP strap via BLE. The strap fires autonomously at the optimal moment within the window using its built-in haptic motor — no phone involvement at wake time.
 
-## What WHOOP has
+## What WHOOP has (from Ghidra RE, 2026-06-11)
 
-Discovered via Ghidra (2026-06-11), `WhoopSleepCoach` framework (114+ classes):
+Discovered via Ghidra, `WhoopSleepCoach` framework (114+ classes):
 - `SmartAlarmStrapService` — writes alarm schedule to strap via a BLE command
 - `SmartAlarmManager` + `SmartAlarmTriggerManager` — orchestrate the alarm lifecycle
 - `SmartAlarmDiagnosticManager` + `SmartAlarmDiagnosticService` — diagnostics/logging
@@ -23,31 +24,102 @@ Discovered via Ghidra (2026-06-11), `WhoopSleepCoach` framework (114+ classes):
 
 The strap receives the alarm schedule and fires the haptic vibration **independently** — it does not need the phone to be connected at wake time.
 
-## Why it matters
+## NOOP reverse-engineering findings (2026-06-11)
 
-This is the most significant gap in Goose's sleep feature. Phase 55 implemented `SleepCoachViews` as read-only display (bedtime/wake time from bridge data). The WHOOP killer feature is the strap alarm — the user is woken by the device, not the phone, at the optimal moment in the wake window.
+**Source:** `NoopApp/noop` — `Packages/WhoopProtocol/Sources/WhoopProtocol/HapticPayloads.swift`
 
-## What needs RE work
+NOOP has fully reverse-engineered the WHOOP 5.0/MG haptic + alarm wire format. All commands use the puffin frame envelope (CRC16-Modbus header) — `puffinCommandFrame()` in `Framing.swift`.
 
-The BLE command to write the alarm schedule to the strap is **not yet identified**. This is the blocker:
-- The GATT characteristic UUID for alarm scheduling is unknown
-- The payload format (wake window start/end timestamps, vibration pattern) needs to be reverse-engineered
-- Approach: attach a BLE sniffer during WHOOP app alarm setup, or decompile `SmartAlarmStrapService` methods in Ghidra to identify the command bytes
+### Buzz — RUN_HAPTIC_PATTERN_MAVERICK — cmd `0x13` (19)
+
+```
+Payload: 12 bytes
+[0x01]                          // REVISION_1
+[0x2F, 0x98, 0x00, 0x00,       // waveformEffects (confirmed waveform pair)
+ 0x00, 0x00, 0x00, 0x00]
+[0x00, 0x00]                    // loopControlForEffects u16 LE = 0
+[loops]                         // overallWaveformLoopControl (1 = buzz once, 2 = twice, etc.)
+```
+
+**CONFIRMED on real MG hardware.** The Breathe screen uses 1 loop inhale, 2 loops exhale. The Interval Timer uses 3 loops (WORK), 1 loop (REST), 5 loops (done).
+
+Note: inner record = `[type=35, seq, cmd=0x13] + payload` = 15 bytes → padded to 16 (4-byte boundary required by puffin framing).
+
+### SET_ALARM_TIME — cmd `0x42` (66) — REVISION_4
+
+```
+Payload: 20 bytes
+[0x04]                          // REVISION_4
+[alarmId]                       // typically 0x01
+[s0, s1, s2, s3]               // epoch seconds u32 LE
+[ss0, ss1]                      // subseconds u16 LE: (ms % 1000) * 32768 / 1000
+[0x2F, 0x98, 0x00, 0x00,       // haptic waveformEffects (same pair as buzz)
+ 0x00, 0x00, 0x00, 0x00]
+[0x00, 0x00]                    // loopControl u16 LE = 0
+[0x07]                          // overallLoop = 7
+[30]                            // duration = 30 s
+```
+
+**Status: EXPERIMENTAL.** Strap ACKed the command on hardware. **Wake-fire event not yet captured** — `STRAP_DRIVEN_ALARM_EXECUTED` has not been observed by NOOP or Goose.
+
+### DISABLE_ALARM — cmd `0x45` (69)
+
+```
+Payload: 2 bytes
+[0x02, 0xFF]    // REVISION_2, alarmId=0xFF (disable all)
+```
+
+### RUN_ALARM — cmd `0x44` (68)
+
+```
+Payload: 2 bytes
+[0x02, alarmId]    // REVISION_2, fire stored alarm now
+```
+
+## Open questions / RE still needed
+
+### STRAP_DRIVEN_ALARM_EXECUTED event — UNKNOWN
+This is the only missing piece. When the strap fires the alarm autonomously, it presumably sends an event back on the notification characteristic. Format is unknown.
+
+**RE plan (prerequisite task before alarm implementation phase):**
+1. Arm the alarm for T+2 minutes via `SET_ALARM_TIME` command
+2. Start BTSnoop HCI capture (`tshark` at `/opt/homebrew/bin/tshark`)
+3. Wait for the strap to fire
+4. Filter the capture for handle `0x0022` or `0x0027` packets after the alarm fires
+5. Identify the event type byte and payload layout
+
+This is a single focused session (~30 min). Should be planned as a standalone task before the alarm implementation phase begins.
+
+### GET_ALL_HAPTICS_PATTERN — cmd `0x3F` (63)
+Already catalogued in `commands.rs`. Send this command to get the full list of available waveform pattern IDs from the WHOOP 5.0. Could reveal additional patterns beyond `[47, 152]`.
 
 ## Goose current state
 
-- `GooseBLEClient` can already write arbitrary BLE commands (has `sendDebugResearchCommand`)
+- `GooseBLEClient` can write arbitrary BLE commands (`commandCharacteristic`, `writeValue`)
 - Rust core has sleep staging and can compute optimal wake window from staging output
-- Missing: the specific BLE command + payload, and the Swift orchestration layer
+- `commands.rs` has all haptic/alarm command IDs registered (`run_haptic_pattern_maverick`, `set_alarm_time`, `run_alarm`, `disable_alarm`, `stop_haptics`)
+- **Missing in Swift:** no `buzz(loops:)` function in `GooseBLEClient+Commands.swift`; the haptic commands in Rust are catalogued but not wired to Swift
 
-## Implementation sketch (once GATT command identified)
+## Implementation plan (once RE complete)
 
-1. `GooseSmartAlarmManager` — computes wake window from sleep staging result
-2. `GooseBLEClient+AlarmCommands.swift` — writes schedule command to strap
-3. Confirmation handler — listens for ack from strap
-4. UI in Sleep Coach view — set alarm window, show confirmation
+### Phase A — Prerequisite (unblock Breathe + Intervals + Alarm)
+1. Add `func buzz(loops: UInt8)` to `GooseBLEClient+Commands.swift`
+   - Build `MaverickHaptics.notificationBuzz(loops:)` payload
+   - Wrap in `puffinCommandFrame(cmd: 0x13, seq:, payload:)`
+   - Write to `commandCharacteristic`
+
+### Phase B — Smart Alarm
+1. `GooseSmartAlarmManager.swift` — computes wake window from sleep staging output
+2. `GooseBLEClient+AlarmCommands.swift` — `setAlarm(wakeEpochMs:)`, `disableAlarm()`, `runAlarm()`
+3. Event handler — listen for `STRAP_DRIVEN_ALARM_EXECUTED` on notification characteristic
+4. UI in Sleep Coach view — set alarm window, show confirmation, cancel
 
 ## Files to create
 
-- `GooseSwift/GooseSmartAlarmManager.swift`
 - `GooseSwift/GooseBLEClient+AlarmCommands.swift`
+- `GooseSwift/GooseSmartAlarmManager.swift`
+- (update) `GooseSwift/GooseBLEClient+Commands.swift` — add `buzz(loops:)`
+
+## Related seeds
+
+- `noop-feature-import.md` — full NOOP feature import plan (Breathe, Intervals, CSV import, etc.) — buzz wire-up is shared prerequisite
