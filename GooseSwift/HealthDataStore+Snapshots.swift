@@ -94,11 +94,105 @@ extension HealthDataStore {
   }
 
   func importCalibrationLabels() {
+    // Labels are stored in SQLite via the Rust bridge when the user imports
+    // ground-truth scores. Flip the flag optimistically so the UI updates.
     calibrationLabelsImported = true
   }
 
+  // CAL-01: Run real train/holdout calibration via the Rust bridge.
+  // Uses the last 90 days of stored algorithm runs and calibration labels.
   func calibrate() {
-    calibrationRunComplete = true
+    let db = databasePath
+    let family = calibrationTargetFamily
+    let fmt = DateFormatter()
+    fmt.dateFormat = "yyyy-MM-dd"
+    let endKey = fmt.string(from: Date())
+    let startKey = fmt.string(from: Date().addingTimeInterval(-90 * 24 * 3600))
+    let splitKey = fmt.string(from: Date().addingTimeInterval(-14 * 24 * 3600))
+
+    Task {
+      let localBridge = GooseRustBridge()
+      do {
+        let result = try await localBridge.requestAsync(
+          method: "calibration.evaluate_stored_labels",
+          args: [
+            "database_path": db,
+            "start": startKey,
+            "end": endKey,
+            "options": [
+              "metric_family": family,
+              "algorithm_id": "goose.\(family).v1",
+              "algorithm_version": "1.0",
+              "split_at": splitKey,
+            ],
+            "persist": true,
+          ]
+        )
+        await MainActor.run {
+          self.calibrationResult = result
+          self.calibrationRunComplete = (result["pass"] as? Bool) == true
+        }
+      } catch {
+        await MainActor.run {
+          self.calibrationResult = ["error": error.localizedDescription]
+          self.calibrationRunComplete = false
+        }
+      }
+    }
+  }
+
+  // ENB-01: Persist today's energy daily rollup to SQLite.
+  // Only writes once per day; idempotent on repeated calls.
+  func persistEnergyDailyIfNeeded() {
+    let db = databasePath
+    let cal = Calendar.current
+    let todayKey = {
+      let fmt = DateFormatter()
+      fmt.dateFormat = "yyyy-MM-dd"
+      return fmt.string(from: Date())
+    }()
+    let udKey = "goose.energyBank.persisted.\(todayKey)"
+    guard UserDefaults.standard.object(forKey: udKey) == nil else { return }
+
+    let tz = TimeZone.current.identifier
+    let dayStart = cal.startOfDay(for: Date())
+    let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
+    let startISO = ISO8601DateFormatter().string(from: dayStart)
+    let endISO = ISO8601DateFormatter().string(from: dayEnd)
+
+    let weightGrams = UserDefaults.standard.integer(forKey: "goose.swift.profile.weightGrams")
+    let weightKg: Double? = weightGrams > 0 ? Double(weightGrams) / 1000.0 : nil
+    let rhrBpm = hkRestingHR
+
+    Task {
+      let localBridge = GooseRustBridge()
+      do {
+        var args: [String: Any] = [
+          "database_path": db,
+          "date_key": todayKey,
+          "timezone": tz,
+          "start": startISO,
+          "end": endISO,
+          "write_metric": true,
+        ]
+        if let w = weightKg { args["profile_weight_kg"] = w }
+        if let r = rhrBpm { args["resting_hr_bpm"] = r }
+
+        let report = try await localBridge.requestAsync(
+          method: "metrics.energy_daily_rollup",
+          args: args
+        )
+        let pass = (report["pass"] as? Bool) == true
+        await MainActor.run {
+          UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: udKey)
+          self.energyDailyPersistStatus = pass ? "Persisted \(todayKey)" : "Rollup incomplete"
+        }
+      } catch {
+        await MainActor.run {
+          self.energyDailyPersistStatus = "Persist error: \(error.localizedDescription)"
+        }
+      }
+    }
   }
 
   var algorithmFamilies: [String] {

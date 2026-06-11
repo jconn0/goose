@@ -721,11 +721,24 @@ extension HealthDataStore {
   }
 
   func calibrationSummary() -> String {
-    calibrationRunComplete ? "ready | 4 train / 2 holdout | improved" : "No run"
+    guard calibrationRunComplete, let result = calibrationResult else {
+      return "No run"
+    }
+    let trainCount = (result["train_count"] as? Int) ?? 0
+    let holdoutCount = (result["holdout_count"] as? Int) ?? 0
+    let improved = (result["holdout_improved"] as? Bool) == true
+    let suffix = improved ? " | improved" : ""
+    return "\(trainCount) train / \(holdoutCount) holdout\(suffix)"
   }
 
   func calibratedScoreSummary() -> String {
-    calibrationRunComplete ? "71.5 raw -> 74.2 / 100" : "No run"
+    guard calibrationRunComplete, let result = calibrationResult else { return "No run" }
+    guard let model = result["model"] as? [String: Any],
+          let intercept = model["intercept"] as? Double,
+          let slope = model["slope"] as? Double else {
+      return "Model not available"
+    }
+    return String(format: "intercept=%.2f slope=%.3f", intercept, slope)
   }
 
   func calibrationIssues() -> [String] {

@@ -35,6 +35,8 @@ final class HealthDataStore {
   var calibrationTargetFamily = "recovery"
   var calibrationLabelsImported = false
   var calibrationRunComplete = false
+  var calibrationResult: [String: Any]?
+  var energyDailyPersistStatus = "Not persisted"
   var heartRateHourlyRanges: [HeartRateHourlyRange] = []
   var heartRateTimelineStatus = "No HR samples stored"
 
