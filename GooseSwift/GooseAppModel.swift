@@ -28,6 +28,7 @@ final class GooseAppModel {
   var respiratoryPacketWatchActive = false
   var respiratoryPacketWatchStatus = "Not watching K18 respiratory history"
   var serverReachable: Bool? = nil
+  private(set) var isNetworkReachable: Bool = true
   var lastUploadAt: Date? = nil
   var pendingBatchCount: Int = 0
   var lastSyncedCount: Int? = nil
@@ -83,6 +84,7 @@ final class GooseAppModel {
     coalesceDelay: GooseAppModel.captureFrameWriteCoalesceDelay
   )
   let uploadService = GooseUploadService(databasePath: HealthDataStore.defaultDatabasePath())
+  let networkMonitor = GooseNetworkMonitor()
   let captureFrameEnqueueAggregator = CaptureFrameEnqueueAggregator(
     publishInterval: GooseAppModel.packetUIStatePublishInterval
   )
@@ -336,6 +338,13 @@ final class GooseAppModel {
       }
     }
     configureUploadService()
+    networkMonitor.onReachabilityChange = { [weak self] reachable in
+      Task { @MainActor in
+        self?.isNetworkReachable = reachable
+      }
+    }
+    networkMonitor.start()
+    ble.record(source: "app.network", title: "monitor.start")
     refreshHeartRateHourlyRanges()
     ble.record(source: "app", title: "model.init")
     prepareClientHello()
