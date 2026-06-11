@@ -57,6 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check results
+        working-directory: /tmp
         run: |
           pytest="${{ needs.pytest.result }}"
           if [[ "$pytest" == "failure" || "$pytest" == "cancelled" ]]; then
