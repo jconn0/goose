@@ -491,7 +491,7 @@ The following string values are currently set by `updateConnectionState()`. Only
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `GooseBLEBondingManager` be `@Observable` or a plain class with callback?**
    - What we know: `GooseBLEClient` is already `@Observable`; bonding state is a property of it
