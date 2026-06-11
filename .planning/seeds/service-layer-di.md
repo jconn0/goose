@@ -3,7 +3,7 @@ name: service-layer-di
 description: Protocol-based service layer and mock infrastructure — enables unit testing of BLE, sync, and health pipeline components in isolation
 metadata:
   type: seed
-  trigger_condition: when test coverage becomes a priority, or when GooseAppModel extensions exceed ~15 files
+  trigger_condition: when planning v10.0 milestone scope
   planted_date: 2026-06-11
 ---
 

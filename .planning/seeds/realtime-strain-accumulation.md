@@ -3,7 +3,7 @@ name: realtime-strain-accumulation
 description: Continuous Swift-side strain accumulator for live workout feedback — mirrors WHPBiotelemetry pattern
 metadata:
   type: seed
-  trigger_condition: when planning post-v9.0 milestone scope, or when improving live workout UX
+  trigger_condition: when planning v10.0 milestone scope
   planted_date: 2026-06-11
 ---
 

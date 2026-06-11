@@ -3,7 +3,7 @@ name: ios-notifications
 description: Local iOS notifications for sleep summary, workout detection, and WHOOP battery — verified against WHOOP binary via Ghidra
 metadata:
   type: seed
-  trigger_condition: when planning post-v9.0 milestone scope
+  trigger_condition: when planning v10.0 milestone scope
   planted_date: 2026-06-11
 ---
 

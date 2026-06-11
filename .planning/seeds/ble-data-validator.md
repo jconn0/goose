@@ -3,7 +3,7 @@ name: ble-data-validator
 description: Swift-side BLE frame validation layer before Rust/SQLite — prevents corrupt frames from reaching persistent storage
 metadata:
   type: seed
-  trigger_condition: when planning post-v9.0 milestone scope
+  trigger_condition: when planning v10.0 milestone scope
   planted_date: 2026-06-11
 ---
 

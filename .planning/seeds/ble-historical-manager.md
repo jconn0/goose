@@ -3,7 +3,7 @@ name: ble-historical-manager
 description: Extract historical BLE sync into a dedicated GooseBLEHistoricalManager — decouple from GooseBLEClient and make sync lifecycle explicit
 metadata:
   type: seed
-  trigger_condition: when GooseBLEClient exceeds ~1200 lines or when historical sync bugs need isolation
+  trigger_condition: when planning v10.0 milestone scope
   planted_date: 2026-06-11
 ---
 

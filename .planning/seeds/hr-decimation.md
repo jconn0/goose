@@ -3,7 +3,7 @@ name: hr-decimation
 description: HR sample decimation for HeartRateSeriesStore — prevents memory growth in long sessions and improves chart render performance
 metadata:
   type: seed
-  trigger_condition: when HeartRateSeriesStore grows beyond ~5000 samples in a session, or when chart render latency becomes noticeable
+  trigger_condition: when planning v10.0 milestone scope
   planted_date: 2026-06-11
 ---
 
