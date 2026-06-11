@@ -17,8 +17,16 @@ struct GooseSwiftApp: App {
       forTaskWithIdentifier: "com.goose.swift.bg-sync",
       using: nil
     ) { task in
+      guard let bgTask = task as? BGAppRefreshTask else {
+        task.setTaskCompleted(success: false)
+        return
+      }
       Task { @MainActor in
-        GooseSwiftApp.sharedModel?.handleBGAppRefresh(task: task as! BGAppRefreshTask)
+        if let model = GooseSwiftApp.sharedModel {
+          model.handleBGAppRefresh(task: bgTask)
+        } else {
+          bgTask.setTaskCompleted(success: false)
+        }
       }
     }
   }
