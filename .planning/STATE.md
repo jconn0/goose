@@ -24,12 +24,12 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 ## Current Position
 
-Phase: 51 of 59 (Bug Audit)
+Phase: 53 of 59 (Home Dashboard Completion)
 Plan: —
 Status: Ready to plan
-Last activity: 2026-06-10 — Roadmap v8.0 created; phases 51–59 defined
+Last activity: 2026-06-11 — Phase 52 complete: BT settings + previewMissingData gated
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 22%
 
 ## Performance Metrics
 
@@ -55,6 +55,10 @@ Recent decisions affecting current work:
 - Phase 52: QT-01 bt-button and QT-02 CodeQL and QT-03 HealthKit importer are all long-deferred from v2.0/v3.0
 - Phase 56 (BIO-05): fabricated 55.0 bpm baseline in HealthDataStore+Recovery.swift:95 must be eliminated
 - Phase 59 (BAND-01): band sleep import path is the final piece of the morning sync story started in Phase 50
+
+### Roadmap Evolution
+
+- Phase 60 added: Band-First Sync — align Goose BLE sync architecture with WHOOP app (4 dimensions: historical sync on applicationWillEnterForeground, APNs push when compute_day finishes, overnight guard as supplementary, APNs wakeup trigger)
 
 ### Pending Todos
 
