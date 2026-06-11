@@ -2,6 +2,10 @@ import CoreBluetooth
 import Foundation
 
 
+// Thread contract: all methods on this class must be called from the main thread.
+// This is enforced by convention — every call site either runs on the @MainActor or
+// dispatches via dispatchCoreBluetoothDelegateToMainIfNeeded before calling transition().
+// Do NOT call transition() or access bondingState from a background queue.
 final class GooseBLEBondingManager {
   private(set) var bondingState: GooseBLEBondingState = .notStarted
 
