@@ -290,3 +290,39 @@ enum WhoopGeneration: CustomStringConvertible {
   }
 }
 
+
+// MARK: - BLE Bonding State
+
+enum GooseBLEBondingState: Equatable {
+  case notStarted
+  case started
+  case subscribed
+  case completed(deviceID: UUID)
+  case cancelled(reason: String)
+
+  var isReady: Bool {
+    if case .completed = self { return true }
+    return false
+  }
+
+  var connectionStateString: String {
+    switch self {
+    case .notStarted:          return "disconnected"
+    case .started:             return "connecting"
+    case .subscribed:          return "discovering"
+    case .completed:           return "ready"
+    case .cancelled(let r):    return r.isEmpty ? "disconnected" : r
+    }
+  }
+
+  var persistenceKey: String {
+    switch self {
+    case .notStarted:   return "notStarted"
+    case .started:      return "started"
+    case .subscribed:   return "subscribed"
+    case .completed:    return "completed"
+    case .cancelled:    return "notStarted"
+    }
+  }
+}
+
