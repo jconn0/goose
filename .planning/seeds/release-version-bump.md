@@ -1,36 +1,33 @@
 ---
 name: release-version-bump
-description: Bump MARKETING_VERSION and CURRENT_PROJECT_VERSION in xcodeproj to match the milestone number before each release
+description: RESOLVED — version bump is now fully automated in release.yml; no manual step needed before tagging
 metadata:
   type: seed
-  trigger_condition: before publishing each GitHub release / AltStore update
+  trigger_condition: n/a — automated
   planted_date: 2026-06-11
+  resolved_date: 2026-06-11
 ---
 
-## Problem
+## Resolved
 
-`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `GooseSwift.xcodeproj` have never been updated — they are stuck at `0.1.0 (1)`. The About screen shows this stale value while AltStore and GitHub releases already show `8.0`.
+The manual bump was automated in commit `9ac4884` (ci: auto-bump MARKETING_VERSION, build number, and Cargo.toml from release tag).
 
-## Convention to adopt
+## How it works now
 
-| Release | MARKETING_VERSION | CURRENT_PROJECT_VERSION |
-|---------|-------------------|------------------------|
-| v9.0 | `9.0` | `9` |
-| v10.0 | `10.0` | `10` |
-| … | … | … |
+The `release.yml` CI step "Bump versions from tag" runs before `xcodebuild`:
 
-The About screen reads from `CFBundleShortVersionString` (= MARKETING_VERSION) and `CFBundleVersion` (= CURRENT_PROJECT_VERSION), so it will show e.g. `9.0 (9)` after the bump.
+```bash
+TAG="v9.0"
+VERSION="9.0"          # → MARKETING_VERSION
+MAJOR="9"              # → CURRENT_PROJECT_VERSION
+CARGO_VERSION="9.0.0"  # → Rust/core/Cargo.toml
+```
 
-## Next action — v9.0 release
+All three fields are patched inline on the runner before the build — no commit required. The IPA is built with the correct version embedded. The About screen will show `9.0 (9)` and Rust core `9.0.0` automatically.
 
-Before tagging `v9.0` and uploading the IPA:
+## Release flow (current)
 
-1. In `GooseSwift.xcodeproj/project.pbxproj`, update all occurrences of:
-   - `MARKETING_VERSION = 0.1.0;` → `MARKETING_VERSION = 9.0;`
-   - `CURRENT_PROJECT_VERSION = 1;` → `CURRENT_PROJECT_VERSION = 9;`
-2. Commit: `chore: bump version to 9.0 for release`
-3. Tag + release as normal
-
-## Files to change
-
-- `GooseSwift.xcodeproj/project.pbxproj` — 4 occurrences of each key (Debug + Release × main target + extension target)
+```
+git tag v9.0 && git push origin v9.0
+# CI does everything: bump → build → publish → AltStore update
+```
