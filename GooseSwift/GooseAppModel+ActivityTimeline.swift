@@ -665,19 +665,6 @@ extension GooseAppModel {
     Int64((date.timeIntervalSince1970 * 1000).rounded())
   }
 
-  static func overnightGuardDirectoryURL(sessionID: String) -> URL {
-    overnightGuardRootDirectoryURL()
-      .appendingPathComponent(sessionID, isDirectory: true)
-  }
-
-  nonisolated static func overnightGuardRootDirectoryURL() -> URL {
-    let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-      ?? FileManager.default.temporaryDirectory
-    return documents
-      .appendingPathComponent("GooseSwift", isDirectory: true)
-      .appendingPathComponent("OvernightGuard", isDirectory: true)
-  }
-
   func formatPersistedDistance(_ meters: Double) -> String {
     if meters >= 1000 {
       return String(format: "%.2fkm", meters / 1000)

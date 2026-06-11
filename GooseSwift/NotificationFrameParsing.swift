@@ -156,7 +156,6 @@ struct ParsedNotificationFrameDispatch {
 struct NotificationParseContext: @unchecked Sendable {
   let deviceType: String
   let healthCaptureActive: Bool
-  let overnightGuardActive: Bool
   let respiratoryPacketWatchActive: Bool
   let fallbackHeartRate: Int?
   let ble: GooseBLEClient

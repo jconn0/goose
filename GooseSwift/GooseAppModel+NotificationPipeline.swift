@@ -373,7 +373,6 @@ extension GooseAppModel {
     let parser = notificationFrameParser
     let deviceType = context.deviceType
     let healthCaptureActive = context.healthCaptureActive
-    let overnightGuardIsActive = context.overnightGuardActive
     let respiratoryPacketWatchIsActive = context.respiratoryPacketWatchActive
     let fallbackHeartRate = context.fallbackHeartRate
     let ble = context.ble
@@ -405,7 +404,6 @@ extension GooseAppModel {
         if let dataSignal = interpretation.dataSignal,
            Self.canHandleDataSignalOffMain(
             interpretation,
-            overnightGuardActive: overnightGuardIsActive,
             respiratoryPacketWatchActive: respiratoryPacketWatchIsActive
            ) {
           Self.recordSkippedParsedFrameMainHandling(
@@ -417,7 +415,7 @@ extension GooseAppModel {
           offMainDataSignalCount += 1
           continue
         }
-        guard Self.requiresMainParsedFrameHandling(interpretation, overnightGuardActive: overnightGuardIsActive) else {
+        guard Self.requiresMainParsedFrameHandling(interpretation) else {
           Self.recordSkippedParsedFrameMainHandling(
             parsedResult,
             ble: ble,
@@ -514,7 +512,6 @@ extension GooseAppModel {
     NotificationParseContext(
       deviceType: event.rustDeviceType,
       healthCaptureActive: activeHealthPacketCapture != nil,
-      overnightGuardActive: overnightGuardActive,
       respiratoryPacketWatchActive: respiratoryPacketWatchActive,
       fallbackHeartRate: recentLiveHeartRate(around: event.capturedAt),
       ble: ble,
@@ -567,8 +564,7 @@ extension GooseAppModel {
   }
 
   nonisolated static func requiresMainParsedFrameHandling(
-    _ interpretation: NotificationFrameInterpretation,
-    overnightGuardActive: Bool
+    _ interpretation: NotificationFrameInterpretation
   ) -> Bool {
     if interpretation.healthPacketFamily != nil
       || interpretation.heartRateBPM != nil
@@ -577,21 +573,17 @@ extension GooseAppModel {
       || interpretation.dataSignal != nil {
       return true
     }
-    if overnightGuardActive, let packetType = interpretation.packetType {
-      return packetType == 47 || packetType == 49 || packetType == 56
-    }
     return false
   }
 
   nonisolated static func canHandleDataSignalOffMain(
     _ interpretation: NotificationFrameInterpretation,
-    overnightGuardActive: Bool,
     respiratoryPacketWatchActive: Bool
   ) -> Bool {
     guard interpretation.dataSignal != nil else {
       return false
     }
-    guard !overnightGuardActive, !respiratoryPacketWatchActive else {
+    guard !respiratoryPacketWatchActive else {
       return false
     }
     return interpretation.healthPacketFamily == nil
