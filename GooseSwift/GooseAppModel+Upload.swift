@@ -68,6 +68,14 @@ extension GooseAppModel {
     }
   }
 
+  // Call this on user logout or WHOOP device swap so the new device's historical data
+  // is not silently skipped by an old watermark (RESEARCH Pitfall 4).
+  // Resets lastUploadAt so the next upload falls back to the default lookback window.
+  func clearAllUploadWatermarks() {
+    GooseUploadWatermark.clearAllWatermarks()
+    lastUploadAt = nil
+  }
+
   func triggerUpload(for result: CaptureFrameWriteResult, deviceEvent: GooseNotificationEvent) {
     guard result.pass, result.errorDescription == nil else { return }
     // sinceTimestamp: 30 seconds ago covers the batch window generously
