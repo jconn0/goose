@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: BLE Reliability & Protocol Parity
 status: executing
-stopped_at: Completed 62-upload-watermark-per-sensor-01-PLAN.md
-last_updated: "2026-06-11T13:53:02.728Z"
+stopped_at: Completed 63-02-PLAN.md
+last_updated: "2026-06-11T14:01:39.314Z"
 last_activity: 2026-06-11 -- Phase 62 Plan 02 executed
 progress:
   total_phases: 22
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 11
-  completed_plans: 10
-  percent: 18
+  completed_plans: 11
+  percent: 23
 ---
 
 # Project State
@@ -66,6 +66,9 @@ Recent decisions affecting current work:
 - Phase 62 Plan 02: effectiveSince gate inside service (not call site); watermark writes on 2xx only per type; clearAllUploadWatermarks resets both keys + lastUploadAt
 - [Phase ?]: Callback pattern (not Combine) for GooseNetworkMonitor.onReachabilityChange — consistent with GooseBLEBondingManager
 - [Phase ?]: isReachable initialised to true to avoid false upload block before first async NWPath update
+- [Phase ?]: apnsDeviceToken uses internal access (not private(set)) so extension setter in separate file can write it
+- [Phase ?]: Upload exponential backoff capped at 60s per delay, 7 total attempts, prevents battery drain on persistent 5xx
+- [Phase ?]: APNs gate is soft (warn log, not error state) - missing token before registration is expected behaviour
 
 ### Roadmap Evolution
 
@@ -92,9 +95,10 @@ Items deferred from v8.0 milestone close (2026-06-11):
 | Phase 62-upload-watermark-per-sensor P01 | 15 | 2 tasks | 2 files |
 | Phase 62-upload-watermark-per-sensor P02 | 20 | 2 tasks | 2 files |
 | Phase 63-network-monitor-upload-gating P01 | 8 | 3 tasks | 3 files |
+| Phase 63 P02 | 5min | 4 tasks | 7 files |
 
 ## Session Continuity
 
-Last session: 2026-06-11T13:52:58.754Z
-Stopped at: Completed 62-upload-watermark-per-sensor-01-PLAN.md
+Last session: 2026-06-11T14:01:39.304Z
+Stopped at: Completed 63-02-PLAN.md
 Resume file: None

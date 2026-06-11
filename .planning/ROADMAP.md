@@ -104,7 +104,7 @@ Known deferred: ble-api-misuse-state-restore debug session (awaiting_human_verif
 - [x] **Phase 60: Band-First Sync** - Align sync architecture with WHOOP's foreground-trigger + silent push + BGAppRefreshTask model; remove overnight poll loop (completed 2026-06-11)
 - [x] **Phase 61: BLE Bonding State Machine** - Formal 5-state bonding manager (WHPBLEBondingManager parity); replace implicit OS bonding (completed 2026-06-11)
 - [x] **Phase 62: Upload Watermark per Sensor** - Per-type upload watermark to prevent re-uploads after crash/restart (WHPStrapLatestUploadedMetricDateKey parity) (completed 2026-06-11)
-- [ ] **Phase 63: Network Monitor & Upload Gating** - NWPathMonitor-based reachability gating + exponential backoff (WHPNetworkMonitor parity)
+- [x] **Phase 63: Network Monitor & Upload Gating** - NWPathMonitor-based reachability gating + exponential backoff (WHPNetworkMonitor parity) (completed 2026-06-11)
 - [ ] **Phase 64: HR Data Sanitizer** - Swift-side HR spike filter before HeartRateSeriesStore (WHPHeartRateDataSanitizer parity)
 - [ ] **Phase 65: Generic BLE State Machine** - Minimal StateMachine<State, Event> type; migrate BLE connection/bonding states into it (WHPStateMachine parity)
 - [ ] **Phase 66: Cap Sense / On-Wrist Detection** - Ghidra investigation of cap sense GATT UUID; on-wrist flag on HR/HRV samples (WHPWhoopStrapOnWrist parity; blocked until UUID identified)
@@ -255,7 +255,7 @@ Known deferred: ble-api-misuse-state-restore debug session (awaiting_human_verif
 | 60. Band-First Sync | v8.0âv9.0 | 3/3 | Complete   | 2026-06-11 |
 | 61. BLE Bonding State Machine | v9.0 | 3/3 | Complete   | 2026-06-11 |
 | 62. Upload Watermark per Sensor | v9.0 | 2/2 | Complete   | 2026-06-11 |
-| 63. Network Monitor & Upload Gating | v9.0 | 1/2 | In Progress|  |
+| 63. Network Monitor & Upload Gating | v9.0 | 2/2 | Complete   | 2026-06-11 |
 | 64. HR Data Sanitizer | v9.0 | 0/TBD | Not started | - |
 | 65. Generic BLE State Machine | v9.0 | 0/TBD | Not started | - |
 | 66. Cap Sense / On-Wrist Detection | v9.0 | 0/TBD | Not started | - |
@@ -545,7 +545,7 @@ Plans:
 3. Upload failures due to server error (5xx) use exponential backoff (1s, 2s, 4s, max 60s) with a visible error state in the UI
 4. Upload is gated on a non-empty device token (APNs registration must have succeeded at least once)
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 
 **Wave 1**
@@ -554,7 +554,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 63-02-PLAN.md — Reachability + APNs-token upload gating, connectivity-return retry, 5xx exponential backoff (1/2/4s, max 60s) with visible error state, APNs registration AppDelegate
+- [x] 63-02-PLAN.md — Reachability + APNs-token upload gating, connectivity-return retry, 5xx exponential backoff (1/2/4s, max 60s) with visible error state, APNs registration AppDelegate
 
 ---
 
