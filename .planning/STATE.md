@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: BLE Reliability & Protocol Parity
 status: executing
-stopped_at: Completed Phase 60 Plan 03 — band-first sync integration complete, all tasks done and human-verified
-last_updated: "2026-06-11T12:55:26.521Z"
+stopped_at: Completed 62-upload-watermark-per-sensor-01-PLAN.md
+last_updated: "2026-06-11T13:28:52.196Z"
 last_activity: 2026-06-11 -- Phase 61 execution started
 progress:
   total_phases: 22
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
   percent: 14
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 ## Current Position
 
 Phase: 61 (BLE Bonding State Machine) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 61
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-06-11 -- Phase 61 execution started
 
 Progress: [██████████] 100%
@@ -62,6 +62,7 @@ Recent decisions affecting current work:
 - Phase 59 (BAND-01): band sleep import path is the final piece of the morning sync story started in Phase 50
 - [Phase ?]: D-03 purge helper inlines Documents/GooseSwift/OvernightGuard path; try? FileManager ensures idempotency on all devices
 - [Phase ?]: Band-first lifecycle: scenePhase active/foreground triggers purgeLegacyOvernightGuardDirectory then triggerForegroundBLESync; overnight guard gate eliminated
+- [Phase ?]: WatermarkType enum with rawFrames/decodedStreams cases; separate UserDefaults keys per type; Foundation-only store
 
 ### Roadmap Evolution
 
@@ -85,9 +86,10 @@ Items deferred from v8.0 milestone close (2026-06-11):
 | hardware_gate | Phase 51 — VAL-HRV-01, VAL-SLP-01, SLP-SYNC real-device | blocked | v7.0 close |
 | verification_gap | Phase 22 — ALG-HRV-04 RMSSD parity (≥5 real sessions) | human_needed | v5.0 close |
 | verification_gap | Phase 26 — ALG-SLP-04 4-class staging validation | human_needed | v5.0 close |
+| Phase 62-upload-watermark-per-sensor P01 | 15 | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-06-11T10:07:53.190Z
-Stopped at: Completed Phase 60 Plan 03 — band-first sync integration complete, all tasks done and human-verified
+Last session: 2026-06-11T13:28:52.187Z
+Stopped at: Completed 62-upload-watermark-per-sensor-01-PLAN.md
 Resume file: None

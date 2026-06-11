@@ -254,7 +254,7 @@ Known deferred: ble-api-misuse-state-restore debug session (awaiting_human_verif
 | 59. Band Sleep Import | v8.0 | 0/TBD | Complete | 2026-06-11 |
 | 60. Band-First Sync | v8.0âv9.0 | 3/3 | Complete   | 2026-06-11 |
 | 61. BLE Bonding State Machine | v9.0 | 3/3 | Complete   | 2026-06-11 |
-| 62. Upload Watermark per Sensor | v9.0 | 0/TBD | Not started | - |
+| 62. Upload Watermark per Sensor | v9.0 | 1/2 | In Progress|  |
 | 63. Network Monitor & Upload Gating | v9.0 | 0/TBD | Not started | - |
 | 64. HR Data Sanitizer | v9.0 | 0/TBD | Not started | - |
 | 65. Generic BLE State Machine | v9.0 | 0/TBD | Not started | - |
@@ -524,8 +524,9 @@ Plans:
 3. The server-side `POST /v1/ingest-frames` endpoint rejects (or deduplicates) frames below the committed watermark
 4. A reset path exists (`clearAllWatermarks`) for logout / device swap
 
-**Plans:** 2 plans
-- [ ] 62-01-PLAN.md — Create GooseUploadWatermark store (UserDefaults, per-type Date, clearAllWatermarks)
+**Plans:** 1/2 plans executed
+
+- [x] 62-01-PLAN.md — Create GooseUploadWatermark store (UserDefaults, per-type Date, clearAllWatermarks)
 - [ ] 62-02-PLAN.md — Wire watermark into upload pipeline (gated sinceTimestamp, atomic write on 2xx, reset path)
 
 ---
