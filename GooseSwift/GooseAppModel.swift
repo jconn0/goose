@@ -108,7 +108,9 @@ final class GooseAppModel {
   var autoStartRespiratoryPacketWatchAttempt = 0
   var passiveActivityCaptureWorkItem: DispatchWorkItem?
   var healthPacketCaptureFamilyRowsByID: [String: HealthPacketCaptureFamily] = [:]
-  var bondingState: GooseBLEBondingState { ble.bondingManager.bondingState }
+  // Stored property so @Observable tracks changes and SwiftUI views invalidate correctly.
+  // Kept in sync with GooseBLEBondingManager via the onBondingStateChange callback in init().
+  var bondingState: GooseBLEBondingState = .notStarted
   var lastParsedFrameSummary: String { packetMonitor.lastParsedFrameSummary }
   var movementPacketStatus: String { packetMonitor.movementPacketStatus }
   var latestWhoopEventStatus: String { packetMonitor.latestWhoopEventStatus }
@@ -306,6 +308,15 @@ final class GooseAppModel {
         source: source,
         capturedAt: capturedAt
       )
+    }
+    // Override the default onBondingStateChange set in GooseBLEClient.init() so we can
+    // (a) keep driving connectionState via updateConnectionState, and
+    // (b) mirror the bonding state into the @Observable stored property so SwiftUI
+    //     views reading model.bondingState are properly invalidated on each transition.
+    ble.bondingManager.onBondingStateChange = { [weak self] newState in
+      guard let self else { return }
+      self.ble.updateConnectionState(newState.connectionStateString)
+      self.bondingState = newState
     }
     ble.onConnectionStateChange = { [weak self] state in
       Task { @MainActor in
