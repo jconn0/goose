@@ -51,13 +51,11 @@ Replace Goose's overnight BLE polling model with WHOOP's band-first sync model �
 - **D-14:** Register `BGTask.expirationHandler` to handle OS revocation gracefully (cancel scan, call completionHandler).
 - **D-15:** Same scan+connect+timeout behavior applies whether triggered by BGAppRefreshTask or (future) silent push — consistent background flow.
 
-### Server Role
-- **D-16:** Server has no changes in this phase. Role: data backup only. No APNs integration, no device token registration, no push sending.
-- **D-17:** `goose-daily-ready` and `start-sync-data` push types are out of scope for this phase. The `start-sync-data` push was assessed as circular (server gets data FROM app — no independent signal to send back). Deferred indefinitely.
-
 ### Claude's Discretion
 - BGAppRefreshTask scheduling interval: planner to choose a reasonable interval (e.g., 15 minutes minimum as enforced by iOS, practical value ~30 min). iOS may not honor the exact interval.
 - Whether `triggerForegroundBLESync()` logs via `ble.record(...)` or OSLog: follow existing patterns in the file.
+- Server has no changes in this phase — role: data backup only. No APNs integration, no device token registration, no push sending. (D-16 scope exclusion, no code needed)
+- `goose-daily-ready` and `start-sync-data` push types are out of scope for this phase. The `start-sync-data` push was assessed as circular (server gets data FROM app). Deferred indefinitely. (D-17 scope exclusion, no code needed)
 
 </decisions>
 
