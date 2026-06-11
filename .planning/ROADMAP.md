@@ -277,7 +277,12 @@ Promoted to Phase 18: Coach Multi-Provider.
 **Goal:** Align Goose's BLE sync architecture with the WHOOP app's band-first model, eliminating the need for continuous overnight BLE capture. The band stores data onboard; the app fetches it opportunistically on foreground and via silent push, exactly as WHOOP does.
 
 **Depends on:** Phase 59
-**Plans:** 0 plans
+**Plans:** 3 plans
+
+Plans:
+- [ ] 60-01-PLAN.md — Delete overnight guard subsystem core (3 files + GooseAppModel state + overnight struct types)
+- [ ] 60-02-PLAN.md — Add band-first sync: BandFirstSync.swift (foreground trigger + BGAppRefreshTask handler), BGTask registration, Info.plist keys
+- [ ] 60-03-PLAN.md — Wire foreground trigger + clean secondary overnight references; build clean (wave 2)
 
 #### Background — Ghidra reverse engineering of WHOOP 5.37.0
 
