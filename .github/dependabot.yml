@@ -5,21 +5,18 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    cooldown:
-      days: 7
+    open-pull-requests-limit: 3
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
-    cooldown:
-      days: 7
+    open-pull-requests-limit: 5
 
   - package-ecosystem: pip
     directory: /server/ingest
     schedule:
       interval: weekly
       day: monday
-    cooldown:
-      days: 7
+    open-pull-requests-limit: 3
