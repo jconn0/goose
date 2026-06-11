@@ -91,6 +91,7 @@
 		D10000000000000000000013 /* FitnessSummaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000013 /* FitnessSummaryViews.swift */; };
 		D10000000000000000000014 /* FitnessFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000014 /* FitnessFormatting.swift */; };
 		D10000000000000000000017 /* NotificationFrameParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000017 /* NotificationFrameParsing.swift */; };
+		D10000000000000000000054 /* WhoopFrameParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000054 /* WhoopFrameParser.swift */; };
 		D10000000000000000000018 /* CaptureFrameWriteQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000018 /* CaptureFrameWriteQueue.swift */; };
 		D10000000000000000000019 /* OvernightSQLiteMirrorQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000019 /* OvernightSQLiteMirrorQueue.swift */; };
 		D1000000000000000000001A /* OvernightRawNotificationSpool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000000000000000000001A /* OvernightRawNotificationSpool.swift */; };
@@ -262,6 +263,7 @@
 		D20000000000000000000013 /* FitnessSummaryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessSummaryViews.swift; sourceTree = "<group>"; };
 		D20000000000000000000014 /* FitnessFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessFormatting.swift; sourceTree = "<group>"; };
 		D20000000000000000000017 /* NotificationFrameParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationFrameParsing.swift; sourceTree = "<group>"; };
+		D20000000000000000000054 /* WhoopFrameParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopFrameParser.swift; sourceTree = "<group>"; };
 		D20000000000000000000018 /* CaptureFrameWriteQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureFrameWriteQueue.swift; sourceTree = "<group>"; };
 		D20000000000000000000019 /* OvernightSQLiteMirrorQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightSQLiteMirrorQueue.swift; sourceTree = "<group>"; };
 		D2000000000000000000001A /* OvernightRawNotificationSpool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightRawNotificationSpool.swift; sourceTree = "<group>"; };
@@ -367,6 +369,7 @@
 				D20000000000000000000042 /* GooseAppModel+PacketPublishing.swift */,
 				D20000000000000000000043 /* GooseAppModel+ActivityTimeline.swift */,
 				D20000000000000000000017 /* NotificationFrameParsing.swift */,
+				D20000000000000000000054 /* WhoopFrameParser.swift */,
 				D20000000000000000000018 /* CaptureFrameWriteQueue.swift */,
 				D20000000000000000000019 /* OvernightSQLiteMirrorQueue.swift */,
 				D2000000000000000000001A /* OvernightRawNotificationSpool.swift */,
@@ -672,6 +675,7 @@
 				D10000000000000000000042 /* GooseAppModel+PacketPublishing.swift in Sources */,
 				D10000000000000000000043 /* GooseAppModel+ActivityTimeline.swift in Sources */,
 				D10000000000000000000017 /* NotificationFrameParsing.swift in Sources */,
+				D10000000000000000000054 /* WhoopFrameParser.swift in Sources */,
 				D10000000000000000000018 /* CaptureFrameWriteQueue.swift in Sources */,
 				D10000000000000000000019 /* OvernightSQLiteMirrorQueue.swift in Sources */,
 				D1000000000000000000001A /* OvernightRawNotificationSpool.swift in Sources */,
@@ -1041,7 +1045,7 @@
 				);
 				MARKETING_VERSION = 0.1.0;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.goose.swift.WorkoutLiveActivityExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.naz3eh.gooseswift.WorkoutLiveActivityExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1072,7 +1076,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.goose.swift.WorkoutLiveActivityExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.naz3eh.gooseswift.WorkoutLiveActivityExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;

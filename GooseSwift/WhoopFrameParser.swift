@@ -83,7 +83,7 @@ final class WhoopFrameParser {
                     if (20...240).contains(rawHR) { heartRateBPM = rawHR }
                 }
                 movement = computeK10Movement(payload: payload)
-            case 17:
+            case 16, 17:
                 r17Flags = readU16LE(payload, offset: 13).map(Int.init)
                 r17ChannelsOrGain = (15...20).compactMap { i in
                     payload.count > i ? Int(payload[i]) : nil
@@ -338,6 +338,7 @@ final class WhoopFrameParser {
     static func dataBodyKind(k: Int) -> String {
         switch k {
         case 7, 9, 12, 18, 24: return "normal_history"
+        case 16:               return "raw_ecg_labrador"
         case 17:               return "r17_optical_or_labrador_filtered"
         case 10:               return "raw_motion_k10"
         case 21:               return "raw_motion_k21"
