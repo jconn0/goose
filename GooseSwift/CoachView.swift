@@ -26,7 +26,8 @@ struct CoachView: View {
       openChat: { openChat(prompt: nil) },
       openHealth: router.openHealth,
       openMore: router.openMore,
-      openChatPrompt: openChat(prompt:)
+      openChatPrompt: openChat(prompt:),
+      healthStore: healthStore
     )
     .gooseScreenBackground()
     .navigationTitle("Coach")
@@ -435,6 +436,7 @@ private struct CoachOverviewScreen: View {
   let openHealth: (HealthRoute?) -> Void
   let openMore: (MoreRoute?) -> Void
   let openChatPrompt: (String) -> Void
+  var healthStore: HealthDataStore
   @State private var showingJournal = false
   @State private var todayEntry: DailyJournalEntry? = DailyJournalStore.today()
 
@@ -454,6 +456,8 @@ private struct CoachOverviewScreen: View {
         CoachJournalCard(entry: todayEntry) {
           showingJournal = true
         }
+
+        CoachRoutesSection(healthStore: healthStore)
 
         CoachOverviewSectionTitle("Metric Highlights")
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
