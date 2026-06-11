@@ -524,7 +524,9 @@ Plans:
 3. The server-side `POST /v1/ingest-frames` endpoint rejects (or deduplicates) frames below the committed watermark
 4. A reset path exists (`clearAllWatermarks`) for logout / device swap
 
-**Plans:** 0 plans
+**Plans:** 2 plans
+- [ ] 62-01-PLAN.md — Create GooseUploadWatermark store (UserDefaults, per-type Date, clearAllWatermarks)
+- [ ] 62-02-PLAN.md — Wire watermark into upload pipeline (gated sinceTimestamp, atomic write on 2xx, reset path)
 
 ---
 
