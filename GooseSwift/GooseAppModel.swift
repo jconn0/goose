@@ -27,31 +27,6 @@ final class GooseAppModel {
   var healthPacketCaptureFamilyRows: [HealthPacketCaptureFamily] = []
   var respiratoryPacketWatchActive = false
   var respiratoryPacketWatchStatus = "Not watching K18 respiratory history"
-  var overnightGuardActive = false
-  var overnightGuardStatus = "Not started"
-  var overnightGuardReadinessStatus = "pending"
-  var overnightGuardReadinessSummary = "Not sleep-ready | connect WHOOP and start Overnight Guard"
-  var overnightGuardRawNotificationCount = 0
-  var overnightGuardRangePollCount = 0
-  var overnightGuardRangeTelemetryCount = 0
-  var overnightGuardSuccessfulRangePollCount = 0
-  var overnightGuardCommandWriteCount = 0
-  var overnightGuardEventLogCount = 0
-  var overnightGuardTargetSummary = OvernightGuardTargetCounts().summary
-  var overnightGuardHistoricalOrderSummary = OvernightGuardHistoricalOrderEvidence().summary
-  var overnightGuardLastPacketSummary = "No raw notifications"
-  var overnightGuardSpoolPath = "No overnight spool"
-  var overnightGuardSpoolSizeSummary = "No overnight spool size"
-  var overnightGuardSQLiteMirrorSummary = "SQLite mirror not started"
-  var overnightGuardPowerSummary = "Power not checked"
-  var overnightGuardWatchdogSummary = "Watchdog not checked"
-  var overnightGuardWarning = "Keep the official WHOOP app closed until Goose final sync/export finishes."
-  var overnightGuardExportStatus = "No overnight export"
-  var overnightGuardExportInProgress = false
-  var overnightGuardExportURL: URL?
-  var overnightGuardExportManifestURL: URL?
-  var overnightGuardExportManifestError: String?
-  var overnightGuardCanExportLastSession = false
   var serverReachable: Bool? = nil
   var lastUploadAt: Date? = nil
   var pendingBatchCount: Int = 0
@@ -117,27 +92,6 @@ final class GooseAppModel {
   var activeActivityOwnsCaptureSession = false
   var activityRequestedHighFrequencyHistorySync = false
   var activeHealthPacketCapture: ActiveHealthPacketCapture?
-  let overnightRawSpool = OvernightRawNotificationSpool()
-  var overnightGuardSession: OvernightGuardSession?
-  var overnightGuardHeartbeatWorkItem: DispatchWorkItem?
-  var overnightGuardRangePollWorkItem: DispatchWorkItem?
-  var overnightGuardFinalSyncDrainWorkItem: DispatchWorkItem?
-  var overnightGuardFinalSyncPending = false
-  var overnightGuardCriticalBackgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-  var overnightGuardCriticalBackgroundTaskReason: String?
-  var overnightGuardStartedHealthCapture = false
-  var overnightGuardTargetCounts = OvernightGuardTargetCounts()
-  var overnightGuardHistoricalOrder = OvernightGuardHistoricalOrderEvidence()
-  var overnightGuardPowerWarning: String?
-  var overnightGuardWatchdogWarning: String?
-  var overnightGuardRawSpoolWarning: String?
-  var overnightGuardBLELogWarning: String?
-  var overnightGuardSQLiteMirrorWarning: String?
-  var overnightGuardWroteInitialRawNotificationStatus = false
-  var overnightGuardWroteInitialSQLiteMirrorStatus = false
-  var overnightGuardLastRawStaleWarningAt = Date.distantPast
-  var overnightGuardLastRangeSuccessWarningAt = Date.distantPast
-  var overnightGuardLastTargetMissingWarningAt = Date.distantPast
   var activityDetectionIdleWorkItem: DispatchWorkItem?
   var movementPacketValidation = MovementPacketValidation()
   var movementPacketValidationTimeoutWorkItem: DispatchWorkItem?
@@ -284,16 +238,6 @@ final class GooseAppModel {
   static let whoopDataSignalPipelineMaxSamples = 256
   static let maxRecentDeviceSignalPoints = 32
   static let deviceSignalPointInterval: TimeInterval = 0.75
-  static let overnightGuardDuration: TimeInterval = 12 * 60 * 60
-  static let overnightGuardHeartbeatInterval: TimeInterval = 60
-  static let overnightGuardRangePollInterval: TimeInterval = 15 * 60
-  static let overnightGuardRangeBlockedRetryInterval: TimeInterval = 30
-  static let overnightGuardRangeFailureRetryInterval: TimeInterval = 2 * 60
-  static let overnightGuardFinalSyncDrainInterval: TimeInterval = 8
-  static let overnightGuardRawStaleWarningInterval: TimeInterval = 5 * 60
-  static let overnightGuardRangeSuccessWarningDelay: TimeInterval = 2 * 60
-  static let overnightGuardTargetMissingWarningDelay: TimeInterval = 30 * 60
-  static let overnightGuardWarningRepeatInterval: TimeInterval = 15 * 60
 
   init(startBLE: Bool = true) {
     ble = GooseBLEClient(startCentral: startBLE)
@@ -346,20 +290,6 @@ final class GooseAppModel {
         self?.publishPipelinePerformanceStatus(status)
       }
     }
-    ble.onRawNotificationWithContext = { [weak self] event, context in
-      self?.persistOvernightRawNotificationBeforeInterpretation(
-        event,
-        activeDeviceName: context.activeDeviceName,
-        connectionState: context.connectionState
-      )
-    }
-    ble.onCommandWrite = { [weak self, weak ble] event in
-      self?.persistOvernightCommandWrite(
-        event,
-        activeDeviceName: ble?.activeDeviceName ?? "WHOOP",
-        connectionState: ble?.connectionState ?? "unknown"
-      )
-    }
     ble.onNotification = { [weak self] event in
       Task { @MainActor [weak self] in
         self?.handleNotification(event)
@@ -398,9 +328,6 @@ final class GooseAppModel {
     ble.onHistoricalRangeTelemetry = { [weak self] telemetry in
       self?.persistOvernightHistoricalRangeTelemetry(telemetry)
     }
-    ble.onMessage = { [weak self] message in
-      self?.persistOvernightEventLog(message)
-    }
     configureUploadService()
     refreshHeartRateHourlyRanges()
     ble.record(source: "app", title: "model.init")
@@ -409,7 +336,6 @@ final class GooseAppModel {
     refreshActivityTimeline()
     scheduleAutoStartHealthPacketCaptureIfNeeded()
     scheduleAutoStartRespiratoryPacketWatchIfNeeded()
-    recoverUncleanOvernightGuardSessionIfNeeded()
     // FIX-05 (D-09a): trigger storage compaction at launch from a background queue (Pitfall 6).
     DispatchQueue.global(qos: .utility).async { [weak self] in
       self?.runStorageCompactionIfNeeded()
@@ -428,20 +354,6 @@ final class GooseAppModel {
     temperatureHistorySyncWorkItem?.cancel()
     autoStartHealthPacketCaptureWorkItem?.cancel()
     passiveActivityCaptureWorkItem?.cancel()
-    overnightGuardHeartbeatWorkItem?.cancel()
-    overnightGuardRangePollWorkItem?.cancel()
-    overnightGuardFinalSyncDrainWorkItem?.cancel()
-    if overnightGuardCriticalBackgroundTaskID != .invalid {
-      let backgroundTaskID = overnightGuardCriticalBackgroundTaskID
-      Task { @MainActor in
-        UIApplication.shared.endBackgroundTask(backgroundTaskID)
-      }
-    }
-    if overnightRawSpool.isActive {
-      _ = overnightRawSpool.suspendActive(reason: "model_deinit")
-    } else {
-      _ = overnightRawSpool.finish(status: "model_deinit")
-    }
   }
 
   private nonisolated func runStorageCompactionIfNeeded() {
