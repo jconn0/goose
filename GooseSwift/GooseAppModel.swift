@@ -29,6 +29,9 @@ final class GooseAppModel {
   var respiratoryPacketWatchStatus = "Not watching K18 respiratory history"
   var serverReachable: Bool? = nil
   private(set) var isNetworkReachable: Bool = true
+  private(set) var apnsDeviceToken: String? = nil
+  var uploadErrorState: String? = nil
+  var hasPendingUploadAfterReconnect: Bool = false
   var lastUploadAt: Date? = nil
   var pendingBatchCount: Int = 0
   var lastSyncedCount: Int? = nil
@@ -341,6 +344,7 @@ final class GooseAppModel {
     networkMonitor.onReachabilityChange = { [weak self] reachable in
       Task { @MainActor in
         self?.isNetworkReachable = reachable
+        self?.handleReachabilityChange(reachable)
       }
     }
     networkMonitor.start()

@@ -2,6 +2,16 @@ import Foundation
 
 
 extension GooseAppModel {
+  // Called by the GooseNetworkMonitor callback whenever connectivity changes.
+  // When connectivity returns and there is a deferred upload, clears the pending flag
+  // and the visible error state before triggering the upload.
+  func handleReachabilityChange(_ reachable: Bool) {
+    guard reachable, hasPendingUploadAfterReconnect else { return }
+    hasPendingUploadAfterReconnect = false
+    uploadErrorState = nil
+    triggerManualUpload()
+  }
+
   func handleAppLifecycleChange(_ phase: String) {
     ble.record(source: "app.lifecycle", title: "scene_phase", body: phase)
     if phase == "active" || phase == "foreground" {

@@ -15,6 +15,19 @@ extension GooseAppModel {
       self?.pendingBatchCount = status.pendingBatchCount
       self?.lastSyncedCount = status.lastSyncedCount
       self?.syncPendingRowCount = status.pendingRowCount
+      self?.uploadErrorState = status.uploadErrorState
+    }
+  }
+
+  // Called by GooseAppDelegate when APNs registration succeeds.
+  // Stores the device token, logs it, and triggers a deferred upload if network is available.
+  func setAPNSDeviceToken(_ token: String?) {
+    apnsDeviceToken = token
+    ble.record(source: "app.apns", title: "token.registered")
+    if isNetworkReachable, hasPendingUploadAfterReconnect {
+      hasPendingUploadAfterReconnect = false
+      uploadErrorState = nil
+      triggerManualUpload()
     }
   }
 
@@ -26,6 +39,15 @@ extension GooseAppModel {
   }
 
   func triggerBackfillAndUpload() {
+    guard apnsDeviceToken != nil else {
+      ble.record(level: .warn, source: "upload.gate", title: "skip.no_apns_token")
+      return
+    }
+    guard isNetworkReachable else {
+      hasPendingUploadAfterReconnect = true
+      ble.record(level: .info, source: "upload.gate", title: "skip.offline")
+      return
+    }
     let sinceTimestamp = lastUploadAt ?? Date().addingTimeInterval(-7 * 24 * 3600)
     if let whoopID = ble.activeDeviceIdentifier {
       // Derive device type from the active descriptor's command characteristic prefix,
@@ -41,6 +63,15 @@ extension GooseAppModel {
   }
 
   func triggerManualUpload() {
+    guard apnsDeviceToken != nil else {
+      ble.record(level: .warn, source: "upload.gate", title: "skip.no_apns_token")
+      return
+    }
+    guard isNetworkReachable else {
+      hasPendingUploadAfterReconnect = true
+      ble.record(level: .info, source: "upload.gate", title: "skip.offline")
+      return
+    }
     let sinceTimestamp = lastUploadAt ?? Date().addingTimeInterval(-24 * 3600)
 
     // WHOOP upload: derive device type from the active descriptor's command characteristic prefix.
@@ -78,6 +109,15 @@ extension GooseAppModel {
 
   func triggerUpload(for result: CaptureFrameWriteResult, deviceEvent: GooseNotificationEvent) {
     guard result.pass, result.errorDescription == nil else { return }
+    guard apnsDeviceToken != nil else {
+      ble.record(level: .warn, source: "upload.gate", title: "skip.no_apns_token")
+      return
+    }
+    guard isNetworkReachable else {
+      hasPendingUploadAfterReconnect = true
+      ble.record(level: .info, source: "upload.gate", title: "skip.offline")
+      return
+    }
     // sinceTimestamp: 30 seconds ago covers the batch window generously
     let sinceTimestamp = Date().addingTimeInterval(-30)
     uploadService.upload(
