@@ -2,16 +2,14 @@ import CoreBluetooth
 import Foundation
 
 
-// Thread contract: all methods on this class must be called from the main thread.
-// This is enforced by convention — every call site either runs on the @MainActor or
-// dispatches via dispatchCoreBluetoothDelegateToMainIfNeeded before calling transition().
-// Do NOT call transition() or access bondingState from a background queue.
 final class GooseBLEBondingManager {
   // Internal state machine — drives bondingState via validated transitions.
-  private var machine: StateMachine<GooseBLEBondingState, GooseBLEBondingEvent>
+  // Protected by `lock`; use `withLock` for all reads and writes of `_machine`.
+  private var _machine: StateMachine<GooseBLEBondingState, GooseBLEBondingEvent>
+  private let lock = NSLock()
 
   // Read-only public access mirrors the machine's current state; satisfies private(set) semantics.
-  var bondingState: GooseBLEBondingState { machine.state }
+  var bondingState: GooseBLEBondingState { lock.withLock { _machine.state } }
 
   // Callback invoked on every state transition (on main thread).
   var onBondingStateChange: ((GooseBLEBondingState) -> Void)?
@@ -22,18 +20,23 @@ final class GooseBLEBondingManager {
 
   init() {
     let initial = GooseBLEBondingManager.loadInitialState()
-    machine = StateMachine(initial: initial, transitions: gooseBLEBondingTransition)
+    _machine = StateMachine(initial: initial, transitions: gooseBLEBondingTransition)
   }
 
-  func transition(to newState: GooseBLEBondingState) {
-    guard newState != bondingState else { return }
-    let event = GooseBLEBondingManager.event(for: newState)
-    machine.handle(event)
+  @discardableResult
+  func transition(to newState: GooseBLEBondingState) -> Bool {
+    let accepted = lock.withLock { () -> Bool in
+      guard newState != _machine.state else { return true }
+      let event = GooseBLEBondingManager.event(for: newState)
+      return _machine.handle(event)
+    }
+    guard accepted else { return false }
     persistState()
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
       self.onBondingStateChange?(self.bondingState)
     }
+    return true
   }
 
   private func persistState() {
