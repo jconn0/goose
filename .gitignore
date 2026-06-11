@@ -17,6 +17,9 @@ Rust/iphonesimulator/
 Vendor/CodexRust/codex-rs/target/
 tmp/
 
+# Local signing overrides (per-developer team/bundle ID — do not commit)
+Config/Local.xcconfig
+
 # Server secrets
 server/.env
 .env
