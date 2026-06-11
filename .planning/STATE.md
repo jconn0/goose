@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v8.0
 milestone_name: Quality, Completeness & Backlog Clearance
-status: executing
-stopped_at: Phase 60 Plan 03 Tasks 1-3 complete; Task 4 checkpoint pending human verification
-last_updated: "2026-06-11T11:30:00.000Z"
-last_activity: 2026-06-11 -- Phase 60 Plan 03 executed (integration: Lifecycle rewrite, D-03 purge, overnight symbol sweep, build clean)
+status: verifying
+stopped_at: Completed Phase 60 Plan 03 — band-first sync integration complete, all tasks done and human-verified
+last_updated: "2026-06-11T10:07:53.200Z"
+last_activity: 2026-06-11 -- Phase 60 Plan 03 Tasks 1-3 complete (integration, sweep clean, build verified)
 progress:
-  total_phases: 15
-  completed_phases: 1
+  total_phases: 10
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 2
-  percent: 14
+  completed_plans: 4
+  percent: 20
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 Phase: 60 (band-first-sync-align-goose-ble-sync-architecture-with-whoop) — EXECUTING
 Plan: 3 of 3 (Tasks 1-3 complete; Task 4 checkpoint pending)
-Status: Executing Phase 60
+Status: Phase complete — ready for verification
 Last activity: 2026-06-11 -- Phase 60 Plan 03 Tasks 1-3 complete (integration, sweep clean, build verified)
 
 Progress: [██████████] 100%
@@ -58,6 +58,8 @@ Recent decisions affecting current work:
 - Phase 52: QT-01 bt-button and QT-02 CodeQL and QT-03 HealthKit importer are all long-deferred from v2.0/v3.0
 - Phase 56 (BIO-05): fabricated 55.0 bpm baseline in HealthDataStore+Recovery.swift:95 must be eliminated
 - Phase 59 (BAND-01): band sleep import path is the final piece of the morning sync story started in Phase 50
+- [Phase ?]: D-03 purge helper inlines Documents/GooseSwift/OvernightGuard path; try? FileManager ensures idempotency on all devices
+- [Phase ?]: Band-first lifecycle: scenePhase active/foreground triggers purgeLegacyOvernightGuardDirectory then triggerForegroundBLESync; overnight guard gate eliminated
 
 ### Roadmap Evolution
 
@@ -80,9 +82,10 @@ Items deferred from v7.0 milestone close (2026-06-10):
 | hardware_gate | Phase 51 — VAL-HRV-01, VAL-SLP-01, SLP-SYNC real-device | blocked | v7.0 close |
 | verification_gap | Phase 22 — ALG-HRV-04 RMSSD parity (≥5 real sessions) | human_needed | v5.0 close |
 | verification_gap | Phase 26 — ALG-SLP-04 4-class staging validation | human_needed | v5.0 close |
+| Phase 60 P03 | 45min | 4 tasks | 8 files |
 
 ## Session Continuity
 
-Last session: 2026-06-11T11:30:00.000Z
-Stopped at: Phase 60 Plan 03 Task 4 checkpoint (human-verify: More tab Overnight Guard removed, app runs clean)
-Resume file: .planning/phases/60-band-first-sync-align-goose-ble-sync-architecture-with-whoop/60-03-PLAN.md
+Last session: 2026-06-11T10:07:53.190Z
+Stopped at: Completed Phase 60 Plan 03 — band-first sync integration complete, all tasks done and human-verified
+Resume file: None

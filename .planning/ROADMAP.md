@@ -95,7 +95,7 @@ Known deferred: Phase 51 (VAL-HRV-01, VAL-SLP-01, SLP-SYNC real-device validatio
 
 **Milestone Goal:** Close the critical architectural gaps identified by Ghidra RE of WHOOP v5.37.0. Phases derived from `.planning/research/whoop-re/WHOOP-GOOSE-CROSS-COMPARE.md`.
 
-- [ ] **Phase 60: Band-First Sync** - Align sync architecture with WHOOP's foreground-trigger + silent push + BGAppRefreshTask model; remove overnight poll loop
+- [x] **Phase 60: Band-First Sync** - Align sync architecture with WHOOP's foreground-trigger + silent push + BGAppRefreshTask model; remove overnight poll loop (completed 2026-06-11)
 - [ ] **Phase 61: BLE Bonding State Machine** - Formal 5-state bonding manager (WHPBLEBondingManager parity); replace implicit OS bonding
 - [ ] **Phase 62: Upload Watermark per Sensor** - Per-type upload watermark to prevent re-uploads after crash/restart (WHPStrapLatestUploadedMetricDateKey parity)
 - [ ] **Phase 63: Network Monitor & Upload Gating** - NWPathMonitor-based reachability gating + exponential backoff (WHPNetworkMonitor parity)
@@ -246,7 +246,7 @@ Known deferred: Phase 51 (VAL-HRV-01, VAL-SLP-01, SLP-SYNC real-device validatio
 | 57. Persistence & Calibration | v8.0 | 0/TBD | Complete | 2026-06-11 |
 | 58. More Tab, Previews & Health Algorithms | v8.0 | 0/TBD | Complete | 2026-06-11 |
 | 59. Band Sleep Import | v8.0 | 0/TBD | Complete | 2026-06-11 |
-| 60. Band-First Sync | v8.0→v9.0 | 1/3 | In progress | - |
+| 60. Band-First Sync | v8.0→v9.0 | 3/3 | Complete   | 2026-06-11 |
 | 61. BLE Bonding State Machine | v9.0 | 0/TBD | Not started | - |
 | 62. Upload Watermark per Sensor | v9.0 | 0/TBD | Not started | - |
 | 63. Network Monitor & Upload Gating | v9.0 | 0/TBD | Not started | - |
@@ -289,16 +289,16 @@ Promoted to Phase 18: Coach Multi-Provider.
 **Goal:** Align Goose's BLE sync architecture with the WHOOP app's band-first model, eliminating the need for continuous overnight BLE capture. The band stores data onboard; the app fetches it opportunistically on foreground and via silent push, exactly as WHOOP does.
 
 **Depends on:** Phase 59
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
 **Wave 1**
 
 - [x] 60-01-PLAN.md — Delete overnight guard subsystem core (3 files + GooseAppModel state + overnight struct types)
-- [ ] 60-02-PLAN.md — Add band-first sync: BandFirstSync.swift (foreground trigger + BGAppRefreshTask handler), BGTask registration, Info.plist keys
+- [x] 60-02-PLAN.md — Add band-first sync: BandFirstSync.swift (foreground trigger + BGAppRefreshTask handler), BGTask registration, Info.plist keys
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 60-03-PLAN.md — Wire foreground trigger + clean secondary overnight references; build clean (wave 2)
+- [x] 60-03-PLAN.md — Wire foreground trigger + clean secondary overnight references; build clean (wave 2)
 
 #### Background — Ghidra reverse engineering of WHOOP 5.37.0
 

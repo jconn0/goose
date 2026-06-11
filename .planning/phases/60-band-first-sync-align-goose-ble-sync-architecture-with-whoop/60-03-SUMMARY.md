@@ -97,7 +97,7 @@ completed: "2026-06-11"
 2. **Task 2: NotificationPipeline + ActivityTimeline cleanup** — `a72ffba` (feat)
 3. **Task 3: UI, context, status string removal + sweep clean** — `c1acbaf` (feat)
 4. **Task 3 (Rule 1/3 fixes): Xcode registration + residual call sites** — `7f3c6f9` (fix)
-5. **Task 4: Checkpoint (human-verify)** — paused
+5. **Task 4: Checkpoint (human-verify)** — APPROVED (human verifier confirmed)
 
 ## Files Created/Modified
 
@@ -182,13 +182,29 @@ No new network endpoints, auth paths, or file access patterns introduced. The D-
 - T-60-09: requiresMainParsedFrameHandling updated at definition and call site
 - T-60-10: Purge runs once (UserDefaults flag), confined to app container, uses try? for silent no-op
 
+## Human Verification (Task 4)
+
+**Verified by:** User on iPhone 17 iOS 26.5 simulator
+**Result:** APPROVED
+
+Confirmed:
+- More tab → Developer → Capture screen shows NO Overnight Guard section (only Session, Imports And Matching, and Recent Capture Sessions sections visible)
+- `overnight.purge` event appeared in Recent Notifications And Events with status "Pronto" — D-03 on-disk purge ran successfully on app launch
+- App launched and ran without crash on iPhone 17 iOS 26.5 simulator
+- Build succeeded with zero errors (confirmed by executor before checkpoint)
+- Screenshot captured showing the Capture screen with no overnight guard content
+
+User response: "approved — Overnight Guard section is absent from Capture screen, overnight.purge event confirms D-03 purge ran on launch, app runs cleanly."
+
 ## Next Phase Readiness
 
-Task 4 (checkpoint:human-verify) is pending human verification:
-- App should launch without crash on iOS simulator
-- More tab Capture screen should show no "Overnight Guard" section
-- Legacy `Documents/GooseSwift/OvernightGuard` directory should be absent after launch
+Phase 60 is fully complete:
+- 60-01: Overnight guard core deletion (done)
+- 60-02: Band-first sync addition — triggerForegroundBLESync + BGAppRefreshTask (done)
+- 60-03: Integration + sweep clean + human-verified (done)
+
+The app exclusively uses the band-first sync path. No overnight guard symbol survives anywhere in GooseSwift/. Phase 61 (BLE Bonding State Machine) can begin immediately.
 
 ---
 *Phase: 60-band-first-sync-align-goose-ble-sync-architecture-with-whoop*
-*Completed: 2026-06-11 (Tasks 1-3; Task 4 pending human verification)*
+*Completed: 2026-06-11*
