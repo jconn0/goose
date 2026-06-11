@@ -82,9 +82,13 @@ final class GooseUploadService: @unchecked Sendable {
       return
     }
 
+    // Resolve effective lower bound: persisted decodedStreams watermark takes precedence over
+    // caller hint. Caller value is only the fallback when no watermark exists yet (first launch).
+    let effectiveSince = GooseUploadWatermark.watermark(for: .decodedStreams) ?? sinceTimestamp
+
     // Pre-capture pending rowIDs for all 8 upload streams BEFORE constructing the payload.
     // Rows arriving after this point will not be marked synced — eliminating the race window.
-    let pendingRowIDs = captureAllPendingRowIDs(deviceID: deviceID, sinceTimestamp: sinceTimestamp)
+    let pendingRowIDs = captureAllPendingRowIDs(deviceID: deviceID, sinceTimestamp: effectiveSince)
 
     // Fetch recent decoded streams from Rust bridge (synchronous — runs on detached task thread)
     let streamsResult: [String: Any]
@@ -94,7 +98,7 @@ final class GooseUploadService: @unchecked Sendable {
         args: [
           "database_path": databasePath,
           "device_id": deviceID.uuidString,
-          "since_ts": sinceTimestamp.timeIntervalSince1970,
+          "since_ts": effectiveSince.timeIntervalSince1970,
         ]
       )
     } catch {
@@ -154,9 +158,12 @@ final class GooseUploadService: @unchecked Sendable {
     if uploadSucceeded {
       // Mark pre-captured rowIDs as synced — only called on 2xx; rows stay synced=0 on failure.
       markStreamsSynced(rowIDsByStream: pendingRowIDs)
+      // Commit decodedStreams watermark AFTER marking rows synced — never written before confirmed
+      // success (RESEARCH Pitfall 1). UserDefaults writes are individually atomic; no lock needed.
+      GooseUploadWatermark.update(.decodedStreams, to: Date())
       // Upload raw BLE frames alongside decoded streams. This enables a fresh iOS
       // install to reconstruct the trust chain via capture.import_frame_batch.
-      await uploadRawFrames(deviceID: deviceID, sinceTimestamp: sinceTimestamp)
+      await uploadRawFrames(deviceID: deviceID, sinceTimestamp: effectiveSince)
       // Advance the checkpoint only after both decoded and raw uploads have been attempted.
       stateLock.withLock {
         _lastUploadTimestamp = Date()
@@ -179,13 +186,17 @@ final class GooseUploadService: @unchecked Sendable {
     guard !rawURL.isEmpty, let baseURL = URL(string: rawURL) else { return }
     guard let token = (try? RemoteServerKeychain.loadToken()) ?? nil, !token.isEmpty else { return }
 
+    // rawFrames watermark is independent — raw and decoded uploads can fail independently
+    // (RESEARCH Pitfall 3). Caller sinceTimestamp is the fallback for first launch only.
+    let effectiveSince = GooseUploadWatermark.watermark(for: .rawFrames) ?? sinceTimestamp
+
     let framesResult: [String: Any]
     do {
       framesResult = try rust.request(
         method: "upload.get_raw_frames_for_upload",
         args: [
           "database_path": databasePath,
-          "since_ts": sinceTimestamp.timeIntervalSince1970,
+          "since_ts": effectiveSince.timeIntervalSince1970,
           "limit": 2000,
         ]
       )
@@ -212,9 +223,11 @@ final class GooseUploadService: @unchecked Sendable {
       logger.debug("uploadRawFrames: server error")
       return
     }
+    // Advance rawFrames watermark only on confirmed 2xx — never on failure or timeout.
+    GooseUploadWatermark.update(.rawFrames, to: Date())
     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
        let inserted = json["inserted"] as? Int {
-      logger.debug("uploadRawFrames: inserted=\(inserted) frames since=\(sinceTimestamp)")
+      logger.debug("uploadRawFrames: inserted=\(inserted) frames since=\(effectiveSince)")
     }
   }
 
