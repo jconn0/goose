@@ -387,7 +387,10 @@ final class GooseUploadService: @unchecked Sendable {
         )
         logger.debug("sync.mark_synced: marked \(rowIDs.count) \(stream) rows")
       } catch {
-        logger.debug("sync.mark_synced \(stream) failed: \(error)")
+        // Use .warning (not .debug) so mark failures are visible in production logs.
+        // A failed mark leaves rows with synced=0 — they may be silently orphaned if
+        // the watermark advances past their timestamp before the next retry.
+        logger.warning("sync.mark_synced \(stream) failed: \(error)")
       }
     }
   }
