@@ -1,3 +1,4 @@
+import BackgroundTasks
 import SwiftUI
 
 @main
@@ -6,8 +7,20 @@ struct GooseSwiftApp: App {
   @State private var model = GooseAppModel()
   @StateObject private var router = AppRouter()
 
+  // Weak reference used by the BGTask handler closure to reach the model.
+  // Set in .onAppear before any background wakeup can occur.
+  nonisolated(unsafe) static weak var sharedModel: GooseAppModel?
+
   init() {
     GooseTheme.configureAppearance()
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: "com.goose.swift.bg-sync",
+      using: nil
+    ) { task in
+      Task { @MainActor in
+        GooseSwiftApp.sharedModel?.handleBGAppRefresh(task: task as! BGAppRefreshTask)
+      }
+    }
   }
 
   var body: some Scene {
@@ -17,6 +30,10 @@ struct GooseSwiftApp: App {
         .environmentObject(model.packetMonitor)
         .environmentObject(model.ble.messageStore)
         .environmentObject(router)
+        .onAppear {
+          GooseSwiftApp.sharedModel = model
+          model.scheduleNextBGAppRefresh()
+        }
         .onOpenURL { url in
           if model.handleDebugCommandDeepLink(url) {
             router.selectedTab = .more
