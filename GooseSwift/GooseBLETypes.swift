@@ -2,6 +2,13 @@ import CoreBluetooth
 import Foundation
 import OSLog
 
+enum WhoopDeviceGeneration: String, Equatable {
+  case unknown
+  case whoop4
+  case whoop5
+  case whoopMG
+}
+
 enum GooseLogLevel: String {
   case debug
   case info

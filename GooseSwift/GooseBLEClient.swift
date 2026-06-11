@@ -873,6 +873,16 @@ final class GooseBLEClient: NSObject, ObservableObject {
     "\(Int(Self.strapClockAutoSyncThresholdSeconds.rounded()))s"
   }
 
+  var deviceGeneration: WhoopDeviceGeneration {
+    guard let model = modelNumber else { return .unknown }
+    let m = model.uppercased()
+    if m.contains("MG") { return .whoopMG }
+    if m.contains("4.") { return .whoop4 }
+    return .whoop5
+  }
+
+  var isWhoopMG: Bool { deviceGeneration == .whoopMG }
+
   var alarmDisplaySummary: String {
     if let lastAlarmScheduledAt {
       let time = Self.alarmTimeFormatter.string(from: lastAlarmScheduledAt)
