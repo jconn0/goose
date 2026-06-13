@@ -139,7 +139,7 @@ Known deferred: BLE5-01/02 (hardware-gated, real WHOOP 5.0 device), HAP-04 (RE-g
 - [x] **Phase 76: Upstream PR Integration** - Cherry-pick upstream b-nnett/goose PRs #4, #12, #29, #31 (main-thread safety, scroll jitter)
 - [x] **Phase 77: Codebase Audit** - Full codebase map + deep review of phases 67-73 + fix all critical findings
 - [x] **Phase 78: Performance & BLE Reliability** - SQLite query optimisation, startup lazy-init, BLE auth retry (SEED-001)
-- [ ] **Phase 79: Polish & Deferred Features** - Debug tab 3-tabs, Support rename, Breathe haptics, live strain accumulator
+- [x] **Phase 79: Polish & Deferred Features** - Debug tab 3-tabs, Support rename, Breathe haptics, live strain accumulator
 
 ## Phase Details
 
@@ -238,7 +238,7 @@ Known deferred: BLE5-01/02 (hardware-gated, real WHOOP 5.0 device), HAP-04 (RE-g
 | 76. Upstream PR Integration | v11.0 | 1/1 | Complete | 2026-06-13 |
 | 77. Codebase Audit | v11.0 | 3/3 | Complete | 2026-06-14 |
 | 78. Performance & BLE Reliability | v11.0 | 3/3 | Complete | 2026-06-14 |
-| 79. Polish & Deferred Features | v11.0 | 0/TBD | Not started | - |
+| 79. Polish & Deferred Features | v11.0 | 4/4 | Complete | 2026-06-14 |
 
 ## Backlog
 
