@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v10.0
-milestone_name: milestone
-status: "Phase 73 shipped — PR #52 (b-nnett/goose)"
+milestone_name: Protocol Parity, Haptics & Feature Completeness
+status: Awaiting next milestone
 stopped_at: Completed 73-02-PLAN.md
-last_updated: "2026-06-12T23:25:53.720Z"
-last_activity: 2026-06-13
+last_updated: "2026-06-13T16:44:49.379Z"
+last_activity: 2026-06-13 — Milestone v10.0 completed and archived
 progress:
   total_phases: 7
   completed_phases: 7
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 
 ## Current Position
 
-Phase: 73 (Smart Alarm + Wake-Window Engine) — EXECUTING
-Plan: 2 of 2
-Status: Phase 73 shipped — PR #52 (b-nnett/goose)
-Last activity: 2026-06-13
+Phase: Milestone v10.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-13 — Milestone v10.0 completed and archived
 
 ## Performance Metrics
 
@@ -100,6 +100,28 @@ Items deferred from previous milestones:
 | Phase 72 P02 | 17 min | 2 tasks | 10 files |
 | Phase 73 P01 | 5 min | 2 tasks | 3 files |
 
+Items acknowledged and deferred at v10.0 milestone close on 2026-06-13:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_session | ble-api-misuse-state-restore | awaiting_human_verify |
+| debug_session | rust-ci-linux-test-failures | investigating |
+| uat_gap | Phase 73 — 73-UAT.md | partial |
+| verification_gap | Phase 68 — 68-VERIFICATION.md | human_needed |
+| verification_gap | Phase 70 — 70-VERIFICATION.md | human_needed |
+| quick_task | historical-sync-direct-write | missing |
+| quick_task | fix-imu-step-count | missing |
+| seed | SEED-001-ble-auth-retry-insufficientAuthentication | dormant |
+| requirement | BLE5-01 — WHOOP 5.0 realtime metrics (R22 type 0x10) | hardware_needed |
+| requirement | BLE5-02 — WHOOP 5.0 historical import without duplicates | hardware_needed |
+| requirement | HAP-02 — Breathe screen with paced haptic feedback | deferred |
+| requirement | HAP-04 — Wake-window engine | re_gated |
+| requirement | FEAT-01 — Coach VOW nudges | partial |
+| requirement | FEAT-02 — Breathe UI + Interval Timer + Metric Explorer | partial |
+| requirement | DATA-01 — Journal/workout/appleDaily/metricSeries SQLite tables | partial |
+| requirement | DATA-02 — Realtime strain accumulator on workout screen | deferred |
+| requirement | ARCH-01 — Protocol abstractions + mocks + unit tests | partial |
+
 ## Quick Tasks Completed
 
 | Date | Slug | Description | Commit |
@@ -112,3 +134,7 @@ Last session: 2026-06-12T18:24:14Z
 Stopped at: Completed 73-02-PLAN.md
 Resume file: None
 Next action: Phase 73 complete — HAP-04 stub done; functional implementation RE-gated pending BTSnoop + Ghidra
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
