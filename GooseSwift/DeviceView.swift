@@ -41,7 +41,8 @@ private struct DeviceContentView: View {
           if selectedPanel == .status {
             DeviceImageAndBattery(
               batteryPercent: ble.batteryLevelPercent,
-              isCharging: ble.batteryIsCharging == true
+              isCharging: ble.batteryIsCharging == true,
+              deviceGeneration: ble.deviceGeneration
             )
           } else {
             DeviceAdvancedPanel(model: model, packetMonitor: packetMonitor, ble: ble)
@@ -159,6 +160,7 @@ private struct DeviceTabButton: View {
 private struct DeviceImageAndBattery: View {
   let batteryPercent: Int?
   let isCharging: Bool
+  let deviceGeneration: WhoopDeviceGeneration
 
   var body: some View {
     GeometryReader { proxy in
@@ -170,7 +172,7 @@ private struct DeviceImageAndBattery: View {
           .scaledToFit()
           .frame(width: imageWidth, height: 305)
           .offset(x: -imageWidth * 0.28, y: 36)
-          .accessibilityLabel("WHOOP strap")
+          .accessibilityLabel(deviceGeneration == .whoopMG ? "WHOOP MG strap" : "WHOOP strap")
 
         HStack(alignment: .bottom, spacing: 18) {
           HStack(alignment: .bottom, spacing: 0) {
@@ -318,6 +320,13 @@ private struct DeviceAdvancedPanel: View {
       }
 
       DeviceFactRow(systemName: "iphone", label: "Model", value: modelSummary)
+      if ble.isWhoopMG {
+        DeviceFactRow(
+          systemName: "waveform.path.ecg.rectangle.fill",
+          label: "ECG stream",
+          value: ble.labradorECGSupportSummary
+        )
+      }
 
       DeviceDetailStack {
         DeviceFactRow(systemName: "heart", label: "Live HR", value: heartRateSummary)
@@ -357,6 +366,12 @@ private struct DeviceAdvancedPanel: View {
   }
 
   private var modelSummary: String {
+    if ble.isWhoopMG {
+      if let modelNumber = ble.modelNumber {
+        return "\(ble.deviceDisplayName) (\(modelNumber))"
+      }
+      return ble.deviceDisplayName
+    }
     if let modelNumber = ble.modelNumber {
       return modelNumber
     }

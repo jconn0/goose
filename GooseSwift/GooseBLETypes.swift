@@ -42,6 +42,31 @@ extension WearableDescriptor {
 
 // MARK: -
 
+enum WhoopDeviceGeneration: String, Equatable {
+  case unknown
+  case whoop4
+  case whoop5
+  case whoopMG
+
+  var displayName: String {
+    switch self {
+    case .unknown:
+      return "WHOOP"
+    case .whoop4:
+      return "WHOOP 4.0"
+    case .whoop5:
+      return "WHOOP 5.0"
+    case .whoopMG:
+      return "WHOOP MG"
+    }
+  }
+
+  var supportsLabradorECG: Bool {
+    self == .whoopMG
+  }
+}
+
+// MARK: -
 enum GooseLogLevel: String {
   case debug
   case info

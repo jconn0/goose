@@ -15,7 +15,7 @@ If you don't know what Xcode is, or how to build the Rust core, this build is no
 
 ![Goose app hero showing a connected WHOOP 5.0 device](docs/assets/readme-hero.png)
 
-This prototype targets WHOOP 5.0 and WHOOP 4.0. Other WHOOP generations are not supported in this build.
+This prototype targets WHOOP 5.0, WHOOP 4.0, and WHOOP MG (the medical-grade WHOOP 5.0 variant). Other WHOOP generations are not supported in this build.
 
 The app and backend have had very little attention put into performance. The app will lag, very considerably. Performance PRs are welcome, or you can wait until I address it in due course.
 
@@ -96,7 +96,7 @@ The self-hosted server and biometric algorithm pipeline are adapted from [my-who
 
 - SwiftUI app shell with Home, Health, Coach, and More tabs.
 - Onboarding and persisted profile state.
-- CoreBluetooth scan/connect flows for WHOOP 5.0 and WHOOP 4.0 devices.
+- CoreBluetooth scan/connect flows for WHOOP 5.0, WHOOP 4.0, and WHOOP MG devices.
 - JSON-over-C bridge into the Goose Rust core.
 - Self-hosted server (`server/`): FastAPI + TimescaleDB, Dockerized; supports both device generations via `device_generation` field.
 - Automatic upload of decoded biometric data from iOS to server (10 stream tables with `synced` flag).
