@@ -62,10 +62,10 @@ struct ManualWorkoutEntrySheet: View {
   @Environment(\.dismiss) private var dismiss
   @StateObject private var vm: WorkoutEntryViewModel
 
-  init(store: HealthDataStore) {
+  init(bridge: any GooseRustBridging, databasePath: String) {
     _vm = StateObject(wrappedValue: WorkoutEntryViewModel(
-      bridge: store.bridge,
-      databasePath: store.databasePath
+      bridge: bridge,
+      databasePath: databasePath
     ))
   }
 
