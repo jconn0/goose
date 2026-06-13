@@ -10628,7 +10628,11 @@ mod tests {
         );
         let result = query_resp.result.expect("result must be present");
         let rows = result["rows"].as_array().expect("rows must be an array");
-        assert_eq!(rows.len(), 1, "one row must be returned for the seeded date");
+        assert_eq!(
+            rows.len(),
+            1,
+            "one row must be returned for the seeded date"
+        );
         assert_eq!(
             rows[0]["date"].as_str(),
             Some("2026-06-01"),
@@ -10703,7 +10707,10 @@ mod tests {
             }),
         };
         let query_resp = handle_bridge_request(query_req);
-        assert!(query_resp.ok, "query_range with source filter should succeed");
+        assert!(
+            query_resp.ok,
+            "query_range with source filter should succeed"
+        );
         let result = query_resp.result.expect("result must be present");
         let rows = result["rows"].as_array().expect("rows must be an array");
         assert_eq!(rows.len(), 1, "source filter must return only matching row");
