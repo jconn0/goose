@@ -7,10 +7,10 @@ last_updated: "2026-06-13T22:35:00.000Z"
 last_activity: 2026-06-13
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
   completed_plans: 8
-  percent: 33
+  percent: 50
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-13)
 
 **Core value:** The user captures WHOOP data on iPhone and it is automatically persisted on their personal server — without depending on external infrastructure. Metrics align with WHOOP from the same raw data.
-**Current focus:** v11.0 — Phase 76 (Upstream PR Integration)
+**Current focus:** v11.0 — Phase 77 (Codebase Audit)
 
 ## Current Position
 
-Phase: 76 — Upstream PR Integration
+Phase: 77 — Codebase Audit
 Plan: —
-Status: Phase 75 complete — ready for Phase 76
-Last activity: 2026-06-13 — Phase 75 complete: PRs #131, #135, #137 integrated (BLE firmware recovery, home baseline, sync donut)
+Status: Phase 76 complete — ready for Phase 77
+Last activity: 2026-06-13 — Phase 76 complete: upstream PRs #29, #31 integrated (main-thread perf, display-safety)
 
 ## Performance Metrics
 
