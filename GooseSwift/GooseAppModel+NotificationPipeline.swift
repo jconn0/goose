@@ -383,7 +383,18 @@ extension GooseAppModel {
       "parse queued \(frames.count) frame\(frames.count == 1 ? "" : "s") | parseQ \(queueDepth) hwm \(highWatermark)"
     )
     notificationParseQueue.async {
-      let frameHexes = frames.map(\.hex)
+      let deviceID = ble.activeDeviceIdentifier
+      let acceptedFrames = frames.filter { ble.dataValidator.validate(frameHex: $0.hex, deviceID: deviceID) }
+      let rejectedCount = frames.count - acceptedFrames.count
+      if rejectedCount > 0 {
+        ble.record(
+          level: .warn,
+          source: "ble.validator",
+          title: "frame.validator.rejected",
+          body: "rejected=\(rejectedCount) accepted=\(acceptedFrames.count) total=\(frames.count)"
+        )
+      }
+      let frameHexes = acceptedFrames.map(\.hex)
       let (parseResults, bridgeTiming, batchTiming) = parser.parseBatch(frameHexes: frameHexes, deviceType: deviceType)
       var mainResults: [ParsedNotificationFrameResult] = []
       var offMainDataSignalCount = 0
