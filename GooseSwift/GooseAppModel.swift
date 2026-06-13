@@ -164,6 +164,11 @@ final class GooseAppModel {
   var lastWhoopEventStatusUpdatedAt = Date.distantPast
   var activityTimelineRefreshGeneration = 0
   var skippedNotificationDiagnostics = SkippedNotificationDiagnostics()
+  // frameReassemblyLock guards frameReassemblyBuffers. gooseFrames() is nonisolated and
+  // called from notificationIngestQueue (a serial queue), so in practice only one call
+  // runs at a time; the lock makes the safety contract explicit and guards against any
+  // future change to the queue's concurrency attributes.
+  let frameReassemblyLock = NSLock()
   @ObservationIgnored nonisolated(unsafe) var frameReassemblyBuffers: [String: Data] = [:]
   var lastNotificationEvent: GooseNotificationEvent?
   let autoStartHealthPacketCaptureOnReady: Bool = {

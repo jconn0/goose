@@ -800,6 +800,8 @@ extension GooseAppModel {
   }
 
   nonisolated func gooseFrames(in data: Data, event: GooseNotificationEvent) -> FrameReassemblyResult {
+    frameReassemblyLock.lock()
+    defer { frameReassemblyLock.unlock() }
     let key = frameReassemblyKey(for: event)
     let hadBufferedData = frameReassemblyBuffers[key]?.isEmpty == false
     var bytes = Array(frameReassemblyBuffers[key] ?? Data())
