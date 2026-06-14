@@ -299,7 +299,7 @@ final class GeminiCoachProvider: CoachProvider {
 
     if modelSupportsStreaming {
       return AsyncStream { continuation in
-        Task.detached {
+        Task {
           do {
             for try await line in initialBytes.lines {
               try Task.checkCancellation()

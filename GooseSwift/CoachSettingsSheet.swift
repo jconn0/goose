@@ -22,6 +22,7 @@ struct CoachSettingsSheet: View {
 
       Section(String(localized: "Configuration")) {
         CoachProviderConfigView(registry: registry, chat: chat)
+          .id("coach_config_\(registry.activeProvider?.id ?? "none")")
       }
 
       if let active = registry.activeProvider, !active.availablePresets.isEmpty {
