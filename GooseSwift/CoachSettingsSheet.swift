@@ -439,6 +439,7 @@ private struct GeminiConfigView: View {
           .accessibilityIdentifier("gemini_ai_studio_link")
       }
     }
+    .accessibilityIdentifier("gemini_config_view")
     .task {
       if provider.isAuthenticated && provider.availableModels.isEmpty {
         await provider.fetchAvailableModels()

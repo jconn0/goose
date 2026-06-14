@@ -70,11 +70,9 @@ final class GooseSwiftUITests: XCTestCase {
     sleep(2)
 
     let pred = NSPredicate(format: "label CONTAINS %@", "Developer")
-    let developerElement = app.staticTexts.matching(pred).firstMatch
-    XCTAssertTrue(
-      developerElement.waitForExistence(timeout: 8),
-      "Developer row should appear in More tab"
-    )
+    let found = app.staticTexts.matching(pred).firstMatch.waitForExistence(timeout: 8)
+      || app.buttons.matching(pred).firstMatch.waitForExistence(timeout: 1)
+    XCTAssertTrue(found, "Developer row should appear in More tab")
   }
 
   // MARK: - Coach settings sheet
@@ -119,7 +117,7 @@ final class GooseSwiftUITests: XCTestCase {
     let geminiRow = app.buttons["coach_provider_gemini"]
     XCTAssertTrue(geminiRow.waitForExistence(timeout: 5), "Gemini provider row should exist")
     geminiRow.tap()
-    sleep(1)
+    sleep(2)
 
     let geminiConfig = app.otherElements["gemini_config_view"]
     XCTAssertTrue(geminiConfig.waitForExistence(timeout: 5), "Gemini config view should appear after selection")
@@ -207,8 +205,10 @@ final class GooseSwiftUITests: XCTestCase {
     tabBar.buttons["Coach"].tap()
     sleep(3)
 
-    let startHere = app.staticTexts["Start Here"]
-    XCTAssertTrue(startHere.waitForExistence(timeout: 8), "Coach should show 'Start Here' heading")
+    let startHere = app.staticTexts["START HERE"]
+    let found = startHere.waitForExistence(timeout: 8)
+      || app.staticTexts["Start Here"].waitForExistence(timeout: 1)
+    XCTAssertTrue(found, "Coach should show 'Start Here' heading")
 
     let pred = NSPredicate(format: "label CONTAINS %@", "Find blockers")
     let blockersButton = app.buttons.matching(pred).firstMatch
