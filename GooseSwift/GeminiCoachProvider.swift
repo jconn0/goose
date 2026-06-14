@@ -85,6 +85,7 @@ enum GeminiCredentialStore {
 enum GeminiProviderError: Error {
   case missingAPIKey
   case invalidResponse
+  case noModelSelected
   case modelFetchFailed(String)
 }
 
@@ -97,6 +98,7 @@ struct GeminiModel: Identifiable, Equatable {
 
 // MARK: - GeminiCoachProvider
 
+@MainActor
 @Observable
 final class GeminiCoachProvider: CoachProvider {
   static let selectedModelIDKey = "goose.coach.gemini.selectedModelID"
@@ -108,6 +110,7 @@ final class GeminiCoachProvider: CoachProvider {
   private(set) var isAuthenticated: Bool
   private(set) var isLoadingModels = false
   private(set) var availableModels: [GeminiModel] = []
+  private(set) var modelFetchError: String?
 
   init() {
     isAuthenticated = (try? GeminiKeychain.load()) != nil
@@ -128,13 +131,16 @@ final class GeminiCoachProvider: CoachProvider {
     UserDefaults.standard.removeObject(forKey: Self.selectedModelIDKey)
     isAuthenticated = false
     availableModels = []
+    modelFetchError = nil
   }
 
   func fetchAvailableModels() async {
     isLoadingModels = true
+    modelFetchError = nil
     defer { isLoadingModels = false }
 
     guard let apiKey = try? GeminiKeychain.load(), !apiKey.isEmpty else {
+      modelFetchError = String(localized: "API key not found")
       return
     }
 
@@ -145,13 +151,18 @@ final class GeminiCoachProvider: CoachProvider {
       request.timeoutInterval = 30
 
       let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse,
-            (200..<300).contains(httpResponse.statusCode) else {
+      guard let httpResponse = response as? HTTPURLResponse else {
+        modelFetchError = String(localized: "Invalid response from server")
+        return
+      }
+      guard (200..<300).contains(httpResponse.statusCode) else {
+        modelFetchError = String(localized: "Server returned error \(httpResponse.statusCode)")
         return
       }
 
       guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
             let models = json["models"] as? [[String: Any]] else {
+        modelFetchError = String(localized: "Failed to parse models list")
         return
       }
 
@@ -166,14 +177,21 @@ final class GeminiCoachProvider: CoachProvider {
         return GeminiModel(id: modelID, displayName: displayName)
       }
 
-      await MainActor.run {
-        self.availableModels = parsedModels
-        if self.selectedModelID.isEmpty, let first = parsedModels.first {
-          self.selectedModelID = first.id
-        }
+      guard !parsedModels.isEmpty else {
+        modelFetchError = String(localized: "No streaming-capable models found")
+        return
+      }
+
+      availableModels = parsedModels
+
+      let currentID = selectedModelID
+      if currentID.isEmpty {
+        selectedModelID = parsedModels[0].id
+      } else if !parsedModels.contains(where: { $0.id == currentID }) {
+        selectedModelID = parsedModels[0].id
       }
     } catch {
-      return
+      modelFetchError = String(localized: "Network error: \(error.localizedDescription)")
     }
   }
 
@@ -186,7 +204,11 @@ final class GeminiCoachProvider: CoachProvider {
       throw GeminiProviderError.missingAPIKey
     }
 
-    let modelID = selectedModelID.isEmpty ? "gemini-2.0-flash" : selectedModelID
+    let modelID = selectedModelID
+    guard !modelID.isEmpty else {
+      throw GeminiProviderError.noModelSelected
+    }
+
     let request = try buildRequest(
       messages: messages,
       systemPrompt: systemPrompt,

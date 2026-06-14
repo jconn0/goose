@@ -68,4 +68,37 @@ final class GeminiProviderTests: XCTestCase {
     provider.signOut()
     XCTAssertFalse(provider.isAuthenticated, "Provider must not be authenticated after sign out")
   }
+
+  // MARK: - No model selected error
+
+  func testSendThrowsWhenNoModelSelected() async throws {
+    let provider = GeminiCoachProvider()
+    try? GeminiCredentialStore.delete()
+    try provider.saveAPIKey("test-key")
+    provider.selectedModelID = ""
+
+    do {
+      _ = try await provider.send(
+        messages: [CoachChatMessage(role: .user, text: "Hello")],
+        systemPrompt: "You are helpful.",
+        preset: .defaultValue
+      )
+      XCTFail("send() must throw when no model is selected")
+    } catch GeminiProviderError.noModelSelected {
+    } catch {
+      XCTFail("send() must throw noModelSelected, got \(error)")
+    }
+
+    provider.signOut()
+  }
+
+  // MARK: - Sign out clears error state
+
+  func testSignOutClearsModelFetchError() throws {
+    let provider = GeminiCoachProvider()
+    provider.signOut()
+
+    XCTAssertNil(provider.modelFetchError, "modelFetchError must be nil after sign out")
+    XCTAssertTrue(provider.availableModels.isEmpty, "availableModels must be empty after sign out")
+  }
 }

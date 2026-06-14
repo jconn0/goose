@@ -375,6 +375,18 @@ private struct GeminiConfigView: View {
               .font(.subheadline)
               .foregroundStyle(.secondary)
           }
+        } else if let error = provider.modelFetchError {
+          Text(error)
+            .font(.caption)
+            .foregroundStyle(.red)
+
+          Button {
+            Task { await provider.fetchAvailableModels() }
+          } label: {
+            Label(String(localized: "Retry"), systemImage: "arrow.clockwise")
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
         } else if !provider.availableModels.isEmpty {
           Picker(String(localized: "Model"), selection: Binding(
             get: { provider.selectedModelID },
