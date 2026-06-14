@@ -38,6 +38,16 @@
                ReferencedContainer = "container:GooseSwift.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "U50000000000000000000001"
+               BuildableName = "GooseSwiftUITests.xctest"
+               BlueprintName = "GooseSwiftUITests"
+               ReferencedContainer = "container:GooseSwift.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -7,6 +7,7 @@ on:
       - "GooseSwift/**"
       - "GooseWorkoutLiveActivityExtension/**"
       - "GooseSwiftTests/**"
+      - "GooseSwiftUITests/**"
       - "GooseSwift.xcodeproj/**"
       - ".github/workflows/swift-build.yml"
   pull_request: {}
@@ -113,7 +114,77 @@ jobs:
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             -derivedDataPath build/DerivedData \
+            -only-testing:GooseSwiftTests \
             -enableCodeCoverage NO
+
+  ui-test:
+    name: XCUITest (simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
+      - name: Install Rust and iOS simulator target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-ios-sim
+
+      - name: Cache cargo
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Rust/core/target
+          key: ${{ runner.os }}-cargo-sim-${{ hashFiles('Rust/core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-sim-
+
+      - name: Build for UI Testing
+        run: |
+          xcodebuild build-for-testing \
+            -project GooseSwift.xcodeproj \
+            -scheme GooseSwift \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            -derivedDataPath build/DerivedData
+
+      - name: Run UI Tests
+        id: uitest
+        run: |
+          xcodebuild test-without-building \
+            -project GooseSwift.xcodeproj \
+            -scheme GooseSwift \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -derivedDataPath build/DerivedData \
+            -only-testing:GooseSwiftUITests \
+            -enableCodeCoverage NO
+
+      - name: Generate HTML report
+        if: always()
+        run: |
+          brew install xchtmlreport
+          xchtmlreport -j -r build/DerivedData/Logs/Test/*.xcresult
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          name: ui-test-report
+          path: build/xchtmlreport/
+          retention-days: 7
 
   build-release:
     name: Build iOS Release
@@ -160,7 +231,7 @@ jobs:
 
   swift-gate:
     name: swift / gate
-    needs: [build, test, build-release]
+    needs: [build, test, build-release, ui-test]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -169,6 +240,7 @@ jobs:
           build="${{ needs.build.result }}"
           test="${{ needs.test.result }}"
           release="${{ needs.build-release.result }}"
+          uitest="${{ needs.ui-test.result }}"
           if [[ "$build" == "failure" || "$build" == "cancelled" ]]; then
             echo "build failed: $build" && exit 1
           fi
@@ -178,4 +250,7 @@ jobs:
           if [[ "$release" == "failure" || "$release" == "cancelled" ]]; then
             echo "release build failed: $release" && exit 1
           fi
-          echo "swift CI passed (build=$build, test=$test, release=$release)"
+          if [[ "$uitest" == "failure" || "$uitest" == "cancelled" ]]; then
+            echo "ui test failed: $uitest" && exit 1
+          fi
+          echo "swift CI passed (build=$build, test=$test, release=$release, uitest=$uitest)"

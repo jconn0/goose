@@ -386,6 +386,16 @@ final class GooseAppModel {
     }
   }
 
+  convenience init(launchArguments: [String] = ProcessInfo.processInfo.arguments) {
+    let isUITesting = launchArguments.contains("--ui-testing")
+    self.init(startBLE: !isUITesting)
+    if isUITesting {
+      onboardingComplete = true
+      UserDefaults.standard.set(true, forKey: OnboardingStorage.onboardingComplete)
+      UserDefaults.standard.set(false, forKey: OnboardingStorage.onboardingRedoRequested)
+    }
+  }
+
   @MainActor deinit {
     activityDetectionIdleWorkItem?.cancel()
     movementPacketValidationTimeoutWorkItem?.cancel()
