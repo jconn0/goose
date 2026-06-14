@@ -32,6 +32,7 @@ struct CoachSettingsSheet: View {
     }
     .navigationTitle(String(localized: "Coach Settings"))
     .navigationBarTitleDisplayMode(.inline)
+    .accessibilityIdentifier("coach_settings_sheet")
     .toolbar {
       ToolbarItem(placement: .topBarLeading) {
         Button(String(localized: "Done")) {
@@ -104,6 +105,7 @@ struct CoachProviderPickerRow: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+    .accessibilityIdentifier("coach_provider_\(provider.id)")
     .accessibilityAddTraits(isActive ? .isSelected : [])
     .accessibilityLabel("\(provider.displayName), \(provider.isAuthenticated ? String(localized: "Signed in") : String(localized: "Not signed in"))\(isActive ? String(localized: ", active") : "")")
   }
@@ -140,6 +142,7 @@ struct CoachProviderConfigView: View {
       case "gemini":
         if let gemini = active as? GeminiCoachProvider {
           GeminiConfigView(provider: gemini)
+            .accessibilityIdentifier("gemini_config_view")
         } else {
           providerMismatchView
         }
@@ -411,6 +414,7 @@ private struct GeminiConfigView: View {
           .textInputAutocapitalization(.never)
           .autocorrectionDisabled()
           .onSubmit { saveKey() }
+          .accessibilityIdentifier("gemini_api_key_field")
 
         HStack {
           Button {
@@ -420,6 +424,7 @@ private struct GeminiConfigView: View {
           }
           .buttonStyle(.borderedProminent)
           .disabled(apiKey.isEmpty)
+          .accessibilityIdentifier("gemini_save_api_key_button")
 
           if let keyStatus {
             Text(keyStatus)
@@ -431,6 +436,7 @@ private struct GeminiConfigView: View {
         Link(String(localized: "Get an API key from Google AI Studio"),
              destination: URL(string: "https://aistudio.google.com/apikey")!)
           .font(.caption)
+          .accessibilityIdentifier("gemini_ai_studio_link")
       }
     }
     .task {
