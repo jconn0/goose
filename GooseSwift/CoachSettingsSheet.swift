@@ -21,8 +21,7 @@ struct CoachSettingsSheet: View {
       }
 
       Section(String(localized: "Configuration")) {
-        CoachProviderConfigView(registry: registry, chat: chat)
-          .id("coach_config_\(registry.activeProvider?.id ?? "none")")
+        providerConfigContent
       }
 
       if let active = registry.activeProvider, !active.availablePresets.isEmpty {
@@ -41,6 +40,55 @@ struct CoachSettingsSheet: View {
           dismiss()
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  private var providerConfigContent: some View {
+    if let active = registry.activeProvider {
+      switch active.id {
+      case "chatgpt":
+        if let chatGPT = active as? ChatGPTCoachProvider {
+          ChatGPTConfigView(provider: chatGPT, chat: chat)
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      case "claude":
+        if let claude = active as? ClaudeCoachProvider {
+          ClaudeConfigView(provider: claude)
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      case "gemini":
+        if let gemini = active as? GeminiCoachProvider {
+          GeminiConfigView(provider: gemini)
+            .accessibilityIdentifier("gemini_config_view")
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      case "custom":
+        if let custom = active as? CustomEndpointCoachProvider {
+          CustomEndpointConfigView(provider: custom)
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      default:
+        Text(String(localized: "Select a provider above to get started."))
+          .foregroundStyle(.secondary)
+          .font(.subheadline)
+      }
+    } else {
+      Text(String(localized: "Select a provider above to get started."))
+        .foregroundStyle(.secondary)
+        .font(.subheadline)
     }
   }
 }
@@ -110,60 +158,6 @@ struct CoachProviderPickerRow: View {
     .accessibilityIdentifier("coach_provider_\(provider.id)")
     .accessibilityAddTraits(isActive ? .isSelected : [])
     .accessibilityLabel("\(provider.displayName), \(provider.isAuthenticated ? String(localized: "Signed in") : String(localized: "Not signed in"))\(isActive ? String(localized: ", active") : "")")
-  }
-}
-
-// MARK: - CoachProviderConfigView
-
-struct CoachProviderConfigView: View {
-  @Bindable var registry: CoachProviderRegistry
-  var chat: CoachChatModel
-
-  private var providerMismatchView: some View {
-    assertionFailure("Active provider does not match its registered id type")
-    return Text(String(localized: "This provider could not be configured. Please reselect it above."))
-      .foregroundStyle(.secondary)
-      .font(.subheadline)
-  }
-
-  var body: some View {
-    if let active = registry.activeProvider {
-      switch active.id {
-      case "chatgpt":
-        if let chatGPT = active as? ChatGPTCoachProvider {
-          ChatGPTConfigView(provider: chatGPT, chat: chat)
-        } else {
-          providerMismatchView
-        }
-      case "claude":
-        if let claude = active as? ClaudeCoachProvider {
-          ClaudeConfigView(provider: claude)
-        } else {
-          providerMismatchView
-        }
-      case "gemini":
-        if let gemini = active as? GeminiCoachProvider {
-          GeminiConfigView(provider: gemini)
-            .accessibilityIdentifier("gemini_config_view")
-        } else {
-          providerMismatchView
-        }
-      case "custom":
-        if let custom = active as? CustomEndpointCoachProvider {
-          CustomEndpointConfigView(provider: custom)
-        } else {
-          providerMismatchView
-        }
-      default:
-        Text(String(localized: "Select a provider above to get started."))
-          .foregroundStyle(.secondary)
-          .font(.subheadline)
-      }
-    } else {
-      Text(String(localized: "Select a provider above to get started."))
-        .foregroundStyle(.secondary)
-        .font(.subheadline)
-    }
   }
 }
 
