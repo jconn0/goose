@@ -3709,6 +3709,10 @@ fn upload_get_recent_decoded_streams_bridge(
                                 hr.push(json!({"ts": ts, "bpm": bpm.round() as u16}));
                             }
                         }
+                        DataPacketBodySummary::RawEcgLabrador { .. } => {
+                            // Raw ECG (Labrador/WHOOP MG) — not yet wired into the upload pipeline.
+                            // ECG waveform extraction will be added in a future phase.
+                        }
                         DataPacketBodySummary::V18History {
                             hr: v18_hr,
                             rr_intervals_ms,
