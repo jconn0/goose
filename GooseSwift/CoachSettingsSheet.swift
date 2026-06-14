@@ -6,6 +6,7 @@ struct CoachSettingsSheet: View {
   @Bindable var registry: CoachProviderRegistry
   var chat: CoachChatModel
   @Environment(\.dismiss) private var dismiss
+  @State private var selectedProviderID: String = ""
 
   var body: some View {
     ScrollView {
@@ -36,6 +37,12 @@ struct CoachSettingsSheet: View {
     .navigationTitle(String(localized: "Coach Settings"))
     .navigationBarTitleDisplayMode(.inline)
     .accessibilityIdentifier("coach_settings_sheet")
+    .onAppear {
+      selectedProviderID = registry.activeProvider?.id ?? ""
+    }
+    .onChange(of: registry.activeProvider?.id) { _, newID in
+      selectedProviderID = newID ?? ""
+    }
     .toolbar {
       ToolbarItem(placement: .topBarLeading) {
         Button(String(localized: "Done")) {
@@ -47,7 +54,8 @@ struct CoachSettingsSheet: View {
 
   @ViewBuilder
   private var providerConfigContent: some View {
-    if let active = registry.activeProvider {
+    let activeProvider = registry.allProviders.first(where: { $0.id == selectedProviderID })
+    if let active = activeProvider {
       switch active.id {
       case "chatgpt":
         if let chatGPT = active as? ChatGPTCoachProvider {
