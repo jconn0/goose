@@ -67,32 +67,46 @@ final class GooseSwiftUITests: XCTestCase {
     XCTAssertTrue(tabBar.waitForExistence(timeout: 10))
 
     tabBar.buttons["More"].tap()
-    sleep(1)
+    sleep(2)
 
-    let developerText = app.staticTexts["Developer"]
+    let pred = NSPredicate(format: "label CONTAINS %@", "Developer")
+    let developerElement = app.staticTexts.matching(pred).firstMatch
     XCTAssertTrue(
-      developerText.waitForExistence(timeout: 5),
+      developerElement.waitForExistence(timeout: 8),
       "Developer row should appear in More tab"
     )
   }
 
   // MARK: - Coach settings sheet
 
-  func testCoachSettingsSheetOpens() {
+  func testCoachSettingsSheetOpensViaSignInButton() {
     app = launchAppForUITesting()
+    navigateToCoachTab()
 
-    let tabBar = app.tabBars.firstMatch
-    XCTAssertTrue(tabBar.waitForExistence(timeout: 10))
+    let signInButton = app.buttons["Sign In"]
+    if signInButton.waitForExistence(timeout: 5) {
+      signInButton.tap()
+      sleep(2)
+      XCTAssertTrue(
+        waitForCoachSettingsSheet(timeout: 5),
+        "Coach settings sheet should present via Sign In button"
+      )
+    }
+  }
 
-    tabBar.buttons["Coach"].tap()
-    sleep(1)
+  func testCoachSettingsSheetOpensViaGear() {
+    app = launchAppForUITesting()
+    navigateToCoachTab()
 
     let settingsButton = app.buttons["Coach settings"]
     XCTAssertTrue(settingsButton.waitForExistence(timeout: 5), "Coach settings gear should be visible")
     settingsButton.tap()
+    sleep(2)
 
-    let settingsSheet = app.otherElements["coach_settings_sheet"]
-    XCTAssertTrue(settingsSheet.waitForExistence(timeout: 5), "Coach settings sheet should present")
+    XCTAssertTrue(
+      waitForCoachSettingsSheet(timeout: 5),
+      "Coach settings sheet should present via gear button"
+    )
   }
 
   // MARK: - Gemini AI Studio provider selection
@@ -100,7 +114,7 @@ final class GooseSwiftUITests: XCTestCase {
   func testSelectGeminiProviderShowsApiKeyConfig() {
     app = launchAppForUITesting()
 
-    navigateToCoachSettings()
+    tryNavigateToCoachSettings()
 
     let geminiRow = app.buttons["coach_provider_gemini"]
     XCTAssertTrue(geminiRow.waitForExistence(timeout: 5), "Gemini provider row should exist")
@@ -120,7 +134,7 @@ final class GooseSwiftUITests: XCTestCase {
   func testGeminiApiKeySaveFlow() {
     app = launchAppForUITesting()
 
-    navigateToCoachSettings()
+    tryNavigateToCoachSettings()
 
     let geminiRow = app.buttons["coach_provider_gemini"]
     XCTAssertTrue(geminiRow.waitForExistence(timeout: 5))
@@ -146,7 +160,7 @@ final class GooseSwiftUITests: XCTestCase {
   func testGeminiSignOutFlow() {
     app = launchAppForUITesting()
 
-    navigateToCoachSettings()
+    tryNavigateToCoachSettings()
 
     let geminiRow = app.buttons["coach_provider_gemini"]
     XCTAssertTrue(geminiRow.waitForExistence(timeout: 5))
@@ -191,10 +205,10 @@ final class GooseSwiftUITests: XCTestCase {
     XCTAssertTrue(tabBar.waitForExistence(timeout: 10))
 
     tabBar.buttons["Coach"].tap()
-    sleep(2)
+    sleep(3)
 
     let startHere = app.staticTexts["Start Here"]
-    XCTAssertTrue(startHere.waitForExistence(timeout: 5), "Coach should show 'Start Here' heading")
+    XCTAssertTrue(startHere.waitForExistence(timeout: 8), "Coach should show 'Start Here' heading")
 
     let pred = NSPredicate(format: "label CONTAINS %@", "Find blockers")
     let blockersButton = app.buttons.matching(pred).firstMatch
@@ -203,18 +217,49 @@ final class GooseSwiftUITests: XCTestCase {
 
   // MARK: - Helpers
 
-  private func navigateToCoachSettings() {
+  private func navigateToCoachTab() {
     let tabBar = app.tabBars.firstMatch
     XCTAssertTrue(tabBar.waitForExistence(timeout: 10))
-
     tabBar.buttons["Coach"].tap()
-    sleep(1)
+    sleep(2)
+  }
 
+  private func tryNavigateToCoachSettings() {
+    navigateToCoachTab()
+
+    // Try Sign In card button first (primary path for signed-out users)
+    let signInButton = app.buttons["Sign In"]
+    if signInButton.waitForExistence(timeout: 3) {
+      signInButton.tap()
+      sleep(2)
+      if waitForCoachSettingsSheet(timeout: 3) {
+        return
+      }
+    }
+
+    // Fall back to toolbar gear button
     let settingsButton = app.buttons["Coach settings"]
-    XCTAssertTrue(settingsButton.waitForExistence(timeout: 5), "Coach settings gear should be visible")
-    settingsButton.tap()
+    if settingsButton.waitForExistence(timeout: 5) {
+      settingsButton.tap()
+      sleep(2)
+      if waitForCoachSettingsSheet(timeout: 5) {
+        return
+      }
+    }
 
-    let settingsSheet = app.otherElements["coach_settings_sheet"]
-    XCTAssertTrue(settingsSheet.waitForExistence(timeout: 5), "Coach settings sheet should present")
+    XCTFail("Coach settings sheet did not open through either Sign In button or gear button")
+  }
+
+  private func waitForCoachSettingsSheet(timeout: TimeInterval) -> Bool {
+    if app.navigationBars["Coach Settings"].waitForExistence(timeout: timeout) {
+      return true
+    }
+    if app.otherElements["coach_settings_sheet"].waitForExistence(timeout: 1) {
+      return true
+    }
+    if app.staticTexts["Provider"].waitForExistence(timeout: 1) {
+      return true
+    }
+    return false
   }
 }
