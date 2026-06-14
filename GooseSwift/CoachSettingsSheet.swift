@@ -333,28 +333,15 @@ private struct ClaudeConfigView: View {
 
 private struct GeminiConfigView: View {
   @Bindable var provider: GeminiCoachProvider
-  @State private var clientId = ""
-  @State private var showingOAuthSheet = false
+  @State private var apiKey = ""
   @State private var showingSignOutConfirm = false
-  @State private var codeVerifier = ""
-  @State private var oauthError: String?
+  @State private var keyStatus: String?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      TextField(String(localized: "Google Client ID"), text: $clientId)
-        .keyboardType(.default)
-        .autocorrectionDisabled()
-        .textInputAutocapitalization(.never)
-        .onAppear {
-          clientId = provider.oauthClientId
-        }
-        .onChange(of: clientId) { _, newValue in
-          UserDefaults.standard.set(newValue, forKey: GeminiCoachProvider.oauthClientIdKey)
-        }
-
       if provider.isAuthenticated {
         HStack {
-          Text(String(localized: "Signed in"))
+          Text(String(localized: "API key saved"))
             .foregroundStyle(.secondary)
           Spacer()
           Button(role: .destructive) {
@@ -371,62 +358,92 @@ private struct GeminiConfigView: View {
           ) {
             Button(String(localized: "Sign Out"), role: .destructive) {
               provider.signOut()
+              apiKey = ""
+              keyStatus = nil
             }
             Button(String(localized: "Cancel"), role: .cancel) {}
           } message: {
-            Text(String(localized: "You will need to sign in again to use this provider."))
+            Text(String(localized: "You will need to enter your API key again to use this provider."))
           }
         }
-      } else {
-        if provider.isExchangingToken {
+
+        if provider.isLoadingModels {
           HStack(spacing: 8) {
             ProgressView()
               .controlSize(.small)
-            Text(String(localized: "Signing in..."))
+            Text(String(localized: "Loading models..."))
               .font(.subheadline)
               .foregroundStyle(.secondary)
           }
-        } else {
-          Button {
-            startGeminiSignIn()
-          } label: {
-            Label(String(localized: "Sign in with Google"), systemImage: "person.crop.circle.badge.checkmark")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.borderedProminent)
-          .disabled(clientId.isEmpty)
-        }
-
-        if let oauthError {
-          Text(oauthError)
+        } else if let error = provider.modelFetchError {
+          Text(error)
             .font(.caption)
             .foregroundStyle(.red)
-        }
-      }
-    }
-    .sheet(isPresented: $showingOAuthSheet) {
-      GeminiOAuthWebView(
-        clientId: clientId,
-        codeVerifier: codeVerifier,
-        onCode: { code in
-          showingOAuthSheet = false
-          Task {
-            do {
-              try await provider.handleRedirect(code: code, codeVerifier: codeVerifier)
-              oauthError = nil
-            } catch {
-              oauthError = String(localized: "Sign-in failed. Try again.")
+
+          Button {
+            Task { await provider.fetchAvailableModels() }
+          } label: {
+            Label(String(localized: "Retry"), systemImage: "arrow.clockwise")
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+        } else if !provider.availableModels.isEmpty {
+          Picker(String(localized: "Model"), selection: Binding(
+            get: { provider.selectedModelID },
+            set: { provider.selectedModelID = $0 }
+          )) {
+            ForEach(provider.availableModels) { model in
+              Text(model.displayName).tag(model.id)
             }
           }
+
+          Button {
+            Task { await provider.fetchAvailableModels() }
+          } label: {
+            Label(String(localized: "Refresh Models"), systemImage: "arrow.clockwise")
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
         }
-      )
+      } else {
+        SecureField(String(localized: "Gemini API Key"), text: $apiKey)
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled()
+
+        HStack {
+          Button {
+            saveKey()
+          } label: {
+            Label(String(localized: "Save"), systemImage: "checkmark")
+          }
+          .buttonStyle(.borderedProminent)
+          .disabled(apiKey.isEmpty)
+
+          if let keyStatus {
+            Text(keyStatus)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Link(String(localized: "Get an API key from Google AI Studio"),
+             destination: URL(string: "https://aistudio.google.com/apikey")!)
+          .font(.caption)
+      }
+    }
+    .task {
+      if provider.isAuthenticated && provider.availableModels.isEmpty {
+        await provider.fetchAvailableModels()
+      }
     }
   }
 
-  private func startGeminiSignIn() {
-    codeVerifier = GeminiCoachProvider.generateCodeVerifier()
-    oauthError = nil
-    showingOAuthSheet = true
+  private func saveKey() {
+    guard !apiKey.isEmpty else { return }
+    try? provider.saveAPIKey(apiKey)
+    apiKey = ""
+    keyStatus = String(localized: "saved")
+    Task { await provider.fetchAvailableModels() }
   }
 }
 

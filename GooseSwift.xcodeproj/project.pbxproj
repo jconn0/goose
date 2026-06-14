@@ -174,7 +174,6 @@
 		E1000000000000000000004 /* ClaudeCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000000000000000000004 /* ClaudeCoachProvider.swift */; };
 		E1000000000000000000005 /* CustomEndpointCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000000000000000000005 /* CustomEndpointCoachProvider.swift */; };
 		E1000000000000000000006 /* GeminiCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000000000000000000006 /* GeminiCoachProvider.swift */; };
-		E1000000000000000000007 /* GeminiOAuthWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000000000000000000007 /* GeminiOAuthWebView.swift */; };
 		E1000000000000000000008 /* CoachSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000000000000000000008 /* CoachSettingsSheet.swift */; };
 		E1000000000000000000009 /* GooseBLEBondingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000000000000000000009 /* GooseBLEBondingManager.swift */; };
 		E100000000000000000000E /* GooseBLEHistoricalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E200000000000000000000E /* GooseBLEHistoricalManager.swift */; };
@@ -411,7 +410,6 @@
 		E2000000000000000000004 /* ClaudeCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCoachProvider.swift; sourceTree = "<group>"; };
 		E2000000000000000000005 /* CustomEndpointCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomEndpointCoachProvider.swift; sourceTree = "<group>"; };
 		E2000000000000000000006 /* GeminiCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiCoachProvider.swift; sourceTree = "<group>"; };
-		E2000000000000000000007 /* GeminiOAuthWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiOAuthWebView.swift; sourceTree = "<group>"; };
 		E2000000000000000000008 /* CoachSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachSettingsSheet.swift; sourceTree = "<group>"; };
 		E2000000000000000000009 /* GooseBLEBondingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooseBLEBondingManager.swift; sourceTree = "<group>"; };
 		E200000000000000000000E /* GooseBLEHistoricalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooseBLEHistoricalManager.swift; sourceTree = "<group>"; };
@@ -667,7 +665,6 @@
 				E2000000000000000000004 /* ClaudeCoachProvider.swift */,
 				E2000000000000000000005 /* CustomEndpointCoachProvider.swift */,
 				E2000000000000000000006 /* GeminiCoachProvider.swift */,
-				E2000000000000000000007 /* GeminiOAuthWebView.swift */,
 				E2000000000000000000008 /* CoachSettingsSheet.swift */,
 				E2000000000000000000009 /* GooseBLEBondingManager.swift */,
 				E200000000000000000000E /* GooseBLEHistoricalManager.swift */,
@@ -1051,7 +1048,6 @@
 				E1000000000000000000004 /* ClaudeCoachProvider.swift in Sources */,
 				E1000000000000000000005 /* CustomEndpointCoachProvider.swift in Sources */,
 				E1000000000000000000006 /* GeminiCoachProvider.swift in Sources */,
-				E1000000000000000000007 /* GeminiOAuthWebView.swift in Sources */,
 				E1000000000000000000008 /* CoachSettingsSheet.swift in Sources */,
 				E1000000000000000000009 /* GooseBLEBondingManager.swift in Sources */,
 				E100000000000000000000E /* GooseBLEHistoricalManager.swift in Sources */,
