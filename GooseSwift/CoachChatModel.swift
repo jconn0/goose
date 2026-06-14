@@ -12,6 +12,8 @@ final class CoachChatModel {
 
   private let registry: CoachProviderRegistry
   private var sendTask: Task<Void, Never>?
+  private var deltaAccumulator: String = ""
+  private var deltaFlushTask: Task<Void, Never>?
 
   // Passthrough auth state — delegates to the ChatGPT provider when it is active
   var isSignedIn: Bool { registry.activeProvider?.isAuthenticated ?? false }
@@ -56,6 +58,9 @@ final class CoachChatModel {
   func startNewConversation() {
     sendTask?.cancel()
     sendTask = nil
+    deltaFlushTask?.cancel()
+    deltaFlushTask = nil
+    deltaAccumulator = ""
     streamState = .idle
     errorMessage = nil
     messages.removeAll()
@@ -81,6 +86,9 @@ final class CoachChatModel {
   func signOut() {
     sendTask?.cancel()
     sendTask = nil
+    deltaFlushTask?.cancel()
+    deltaFlushTask = nil
+    deltaAccumulator = ""
     registry.activeProvider?.signOut()
     streamState = .idle
     messages.removeAll()
@@ -90,6 +98,9 @@ final class CoachChatModel {
   func cancelStreaming() {
     sendTask?.cancel()
     sendTask = nil
+    deltaFlushTask?.cancel()
+    deltaFlushTask = nil
+    flushDeltaAccumulator()
     streamState = .idle
     cancelStreamingMessages()
   }
@@ -136,17 +147,21 @@ final class CoachChatModel {
         )
         for await delta in stream {
           try Task.checkCancellation()
-          appendAssistantText(delta, to: assistantID)
+          accumulateDelta(delta, to: assistantID)
         }
+        flushDeltaAccumulator(to: assistantID)
         finishAssistantMessage(assistantID)
         streamState = .idle
       } catch is CancellationError {
+        flushDeltaAccumulator(to: assistantID)
         markAssistantMessageCancelled(assistantID)
         streamState = .idle
       } catch where isCancelledError(error) {
+        flushDeltaAccumulator(to: assistantID)
         markAssistantMessageCancelled(assistantID)
         streamState = .idle
       } catch {
+        flushDeltaAccumulator(to: assistantID)
         let message = describe(error)
         appendAssistantText("\n\(message)", to: assistantID)
         finishAssistantMessage(assistantID)
@@ -174,6 +189,31 @@ final class CoachChatModel {
   private func appendAssistantText(_ delta: String, to id: UUID) {
     guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
     messages[index].text += delta
+  }
+
+  private func accumulateDelta(_ delta: String, to id: UUID) {
+    deltaAccumulator += delta
+    if deltaFlushTask == nil {
+      deltaFlushTask = Task { [weak self] in
+        try? await Task.sleep(for: .milliseconds(80))
+        self?.flushDeltaAccumulator(to: id)
+      }
+    }
+  }
+
+  private func flushDeltaAccumulator(to id: UUID? = nil) {
+    guard !deltaAccumulator.isEmpty else {
+      deltaFlushTask = nil
+      return
+    }
+    let accumulated = deltaAccumulator
+    deltaAccumulator = ""
+    deltaFlushTask = nil
+    let targetID = id ?? messages.first(where: { $0.isStreaming })?.id
+    if let targetID,
+       let index = messages.firstIndex(where: { $0.id == targetID }) {
+      messages[index].text += accumulated
+    }
   }
 
   private func isAssistantTextEmpty(_ id: UUID) -> Bool {

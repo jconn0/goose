@@ -299,11 +299,11 @@ final class GeminiCoachProvider: CoachProvider {
 
     if modelSupportsStreaming {
       return AsyncStream { continuation in
-        Task {
+        Task.detached {
           do {
             for try await line in initialBytes.lines {
               try Task.checkCancellation()
-              if let delta = self.extractGeminiDelta(from: line) {
+              if let delta = Self.extractGeminiDelta(from: line) {
                 continuation.yield(delta)
               }
             }
@@ -318,7 +318,7 @@ final class GeminiCoachProvider: CoachProvider {
       for try await line in initialBytes.lines {
         fullBody += line
       }
-      let text = self.extractNonStreamingDelta(from: fullBody) ?? ""
+      let text = Self.extractNonStreamingDelta(from: fullBody) ?? ""
       return AsyncStream { continuation in
         if !text.isEmpty {
           continuation.yield(text)
@@ -330,7 +330,7 @@ final class GeminiCoachProvider: CoachProvider {
 
   // MARK: - Internal helpers
 
-  nonisolated func extractGeminiDelta(from line: String) -> String? {
+  nonisolated static func extractGeminiDelta(from line: String) -> String? {
     guard line.hasPrefix("data:") else { return nil }
     let jsonString = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
     guard let data = jsonString.data(using: .utf8),
@@ -343,7 +343,7 @@ final class GeminiCoachProvider: CoachProvider {
     return text
   }
 
-  nonisolated func extractNonStreamingDelta(from body: String) -> String? {
+  nonisolated static func extractNonStreamingDelta(from body: String) -> String? {
     guard let data = body.data(using: .utf8),
           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
           let candidates = obj["candidates"] as? [[String: Any]],

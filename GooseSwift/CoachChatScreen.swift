@@ -72,7 +72,7 @@ struct CoachChatScreen: View {
       )
       .scrollDismissesKeyboard(.interactively)
       .onChange(of: chat.messages) { _, messages in
-        scrollToBottom(proxy: proxy, messages: messages, animated: true)
+        scrollToBottom(proxy: proxy, messages: messages, animated: !chat.streamState.isStreaming)
       }
       .onChange(of: scrollToBottomRequestID) { _, _ in
         composerFocused = false
