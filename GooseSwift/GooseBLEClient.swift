@@ -1007,7 +1007,7 @@ import OSLog
     guard isWhoopMG else {
       return "Not applicable"
     }
-    if !supportsV5SensorCommands {
+    if !supportsSensorCommands {
       return "Connect strap for ECG"
     }
     if physiologyCaptureStatus.lowercased().contains("starting")

@@ -260,13 +260,6 @@ extension GooseBLEClient: CBCentralManagerDelegate {
       return true
     }
     return false
-=======
-    if rememberedDeviceID == peripheral.identifier {
-      scheduleReconnectWithBackoff(peripheral, reason: "auto.connect_failed")
-    } else {
-      updateReconnectState("connect failed")
-    }
->>>>>>> ble-backoff
   }
 
   func centralManager(
