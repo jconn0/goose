@@ -18,29 +18,8 @@ struct CoachSettingsSheet: View {
                 isActive: provider.id == registry.activeProvider?.id
               ) {
                 registry.selectProvider(id: provider.id)
-  }
-}
-
-// MARK: - SettingsSection
-
-private struct SettingsSection<Content: View>: View {
-  let title: String
-  @ViewBuilder let content: () -> Content
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text(title)
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.secondary)
-        .textCase(.uppercase)
-        .padding(.horizontal, 16)
-
-      content()
-        .padding(.horizontal, 16)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-  }
-}
+              }
+            }
           }
         }
         SettingsSection(String(localized: "Configuration")) {
@@ -113,6 +92,27 @@ private struct SettingsSection<Content: View>: View {
         .foregroundStyle(.secondary)
         .font(.subheadline)
     }
+  }
+}
+
+// MARK: - SettingsSection
+
+private struct SettingsSection<Content: View>: View {
+  let title: String
+  @ViewBuilder let content: () -> Content
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(title)
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .textCase(.uppercase)
+        .padding(.horizontal, 16)
+
+      content()
+        .padding(.horizontal, 16)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 
