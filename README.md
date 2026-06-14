@@ -7,45 +7,76 @@
 
 # Goose - Local Companion for WHOOP Devices
 
-> **Active fork of [b-nnett/goose](https://github.com/b-nnett/goose).** This fork extends the original with a self-hosted FastAPI + TimescaleDB server, automatic biometric upload from iOS, and an expanded health metrics pipeline. The upstream project appears inactive; development continues here.
+> **Fork of [jconn0/goose](https://github.com/jconn0/goose).** This fork builds on [tigercraft4/goose](https://github.com/tigercraft4/goose) and [b-nnett/goose](https://github.com/b-nnett/goose) with WHOOP MG support, a pure-Swift BLE frame parser, and integrated upstream PRs. Tested on WHOOP MG hardware.
 
-**Alpha proof of concept. This build is for developers to evaluate whether a project of this scope is viable. It is not ready to use as an app for tracking personal health data yet.**
+**Alpha proof of concept.** Not ready for daily use as a health tracker.
 
-If you don't know what Xcode is, or how to build the Rust core, this build is not for you. Come back on 13 June 2026 for the first public beta on TestFlight.
+This prototype targets **WHOOP 5.0, WHOOP 4.0, and WHOOP MG** (the medical-grade WHOOP 5.0 variant).
 
 ![Goose app hero showing a connected WHOOP 5.0 device](docs/assets/readme-hero.png)
 
-This prototype targets WHOOP 5.0, WHOOP 4.0, and WHOOP MG (the medical-grade WHOOP 5.0 variant). Other WHOOP generations are not supported in this build.
+## Quick Start — No Mac Required
 
-The app and backend have had very little attention put into performance. The app will lag, very considerably. Performance PRs are welcome, or you can wait until I address it in due course.
+Unsigned IPAs are built via GitHub Actions on `macos-15` runners and can be sideloaded with **SideStore** (or AltStore):
+
+1. Go to **Actions → Release → Run workflow** with a tag like `v11.0`
+2. Download the unsigned IPA artifact
+3. Drop into SideStore — it resigns on-device with your free Apple ID
+
+Change the bundle ID in `Config/Signing.xcconfig` before building if you fork.
+
+## Key Changes in This Fork
+
+- **WHOOP MG support** — device detection, Labrador ECG sensor streams (cmd 124/125/139), K16 raw ECG parsing in Rust core
+- **Pure Swift frame parser** — `WhoopFrameParser` replaces the Rust FFI round-trip on the per-notification BLE hot path for lower latency
+- **Upstream PRs integrated** — BLE exponential backoff, FFI bridge optimization, deep-link security, WAL mode/capture storage fixes, scroll/threading perf, and more
+- **Self-hosted server** — FastAPI + TimescaleDB for persisting biometric streams (optional, app works standalone)
 
 Goose is a local-first WHOOP data and health metrics project. The iOS app connects to WHOOP bands, routes packet data through the Goose Rust core, and turns that data into daily health, recovery, sleep, strain, stress, cardio, energy, coach, and debug views. An optional self-hosted server lets you persist decoded biometric streams outside the device.
 
-## What Shipped in v5.0
+## What's Here
 
-v5.0 is the first milestone where the full biometric pipeline is closed end to end.
+**Device support**
 
-**Algorithms and metrics**
+- WHOOP 5.0 and WHOOP MG — connect, live HR, historical sync, Labrador ECG streams
+- WHOOP 4.0 — full support via upstream Gen4 integration (BLE framing, historical sync, V12/V24 metric decode)
 
-- HRV accuracy: BLE-gap aware RMSSD computation with ectopic beat filter.
-- Sleep staging: Cole-Kripke activity-count classifier and 4-class AASM stage model (Wake / REM / Light / Deep).
-- Strain and calories: Ghidra-confirmed WHOOP coefficients for strain score and calorie expenditure.
-- Readiness Engine v1: ACWR (acute:chronic workload ratio) with Foster monotony over a 28-day strain window; outputs a readiness level and zone (optimal / rundown / primed).
+**WHOOP MG specific**
 
-**Biometric decode**
+- MG device detection from model number (`WhoopDeviceGeneration` enum)
+- Labrador sensor commands (124/125/139) for raw ECG capture
+- K16 raw ECG packet parsing in Rust + pipeline integration
 
-- V24 packet decode for SpO2, skin temperature, respiration rate, and gravity2 streams.
-- Exercise detection from the decoded biometric stream.
+**Performance**
 
-**Upload sync infrastructure**
+- `WhoopFrameParser` — pure Swift BLE frame parser replaces Rust FFI round-trip on the per-notification hot path (covers all data/event/command packet types with verified output parity)
+- `@ObservationIgnored lazy var rust` — defers bridge init until first use so UI renders before FFI
+- WAL mode + capture-path indexes in SQLite
 
-- 6 stream tables carry a `synced` flag: `battery`, `events`, `exercise_sessions`, `gravity2_samples`, `hr_samples`, `rr_intervals`.
-- Pending-upload queries and mark-synced operations are available on all 6 tables.
+**BLE reliability**
+
+- Exponential backoff reconnect (1s→60s ramp, 10-attempt cap) with UI banner
+- BLE auth retry on `insufficientAuthentication`
+- Deep-link security — state-changing commands blocked from URL scheme
+
+**Metrics and algorithms**
+
+- HRV: BLE-gap aware RMSSD with segment-aware differencing and Malik ectopic filter
+- Sleep staging: Cole-Kripke + 4-class AASM model
+- Strain/calories: Ghidra-confirmed WHOOP coefficients
+- Recovery: goose_recovery_v0 (HRV-dominant z-score vs personal baseline)
+- Readiness Engine v1: ACWR with Foster monotony
+
+**Self-hosted server**
+
+- FastAPI + TimescaleDB, Dockerized
+- 10 stream tables with `synced` flag for upload tracking
+- API-compatible with my-whoop
 
 **Rust core**
 
-- SQLite schema v19.
-- 45 integration test files in `Rust/core/tests/`.
+- SQLite with versioned schema
+- 45+ integration test files in `Rust/core/tests/`
 
 ## Project Layout
 
@@ -80,37 +111,27 @@ This is an active prototype. Because the data pipeline is still evolving, some m
 
 Goose is an independent project and is not affiliated with WHOOP. This repository does not include or reference source code owned by WHOOP. The app communicates with WHOOP bands over Bluetooth using services and data exposed by the device, then parses and stores that local data through the Goose Rust core. Product names are used only to describe compatibility.
 
-## Design Credit
-
-The current health metric UI draws heavily from [Bevel](https://www.bevel.health/), especially the Sleep, Recovery, Strain, Stress, and trend-detail surfaces. Bevel is not affiliated with Goose; this credit is here because their product design has been a major visual reference.
-
 ## Acknowledgements
 
-This fork is built on top of [b-nnett/goose](https://github.com/b-nnett/goose), the original Goose iOS project. The iOS app shell, BLE protocol work, Rust core architecture, and WHOOP packet parsing are derived from that upstream codebase.
-
-The BLE pairing model, on-wrist detection approach, and background sync architecture draw from [Noop](https://github.com/NoopApp/noop), an offline WHOOP companion that pioneered local-first WHOOP data access on iOS. Noop is not affiliated with Goose; this credit is here because it established many of the patterns this project builds on.
-
-The self-hosted server and biometric algorithm pipeline are adapted from [my-whoop](https://github.com/tigercraft4/my-whoop), a prior personal project for storing and analysing WHOOP data on a self-hosted FastAPI + TimescaleDB stack, itself forked from [johnmiddleton12/wearable](https://github.com/johnmiddleton12/wearable). The server in `server/ingest/` maintains API compatibility with my-whoop so existing deployments continue to work.
+Built on [b-nnett/goose](https://github.com/b-nnett/goose) (original iOS app, BLE protocol, Rust core) and [tigercraft4/goose](https://github.com/tigercraft4/goose) (server, Coach, Gen4 support, upstream PR integration). WHOOP MG support from [PR #50](https://github.com/b-nnett/goose/pull/50) by [naz3eh](https://github.com/naz3eh). BLE patterns drawn from [Noop](https://github.com/NoopApp/noop). Self-hosted server adapted from [my-whoop](https://github.com/tigercraft4/my-whoop) / [johnmiddleton12/wearable](https://github.com/johnmiddleton12/wearable).
 
 ## Current Scope
 
 - SwiftUI app shell with Home, Health, Coach, and More tabs.
-- Onboarding and persisted profile state.
-- CoreBluetooth scan/connect flows for WHOOP 5.0, WHOOP 4.0, and WHOOP MG devices.
+- CoreBluetooth scan/connect flows for WHOOP 5.0, WHOOP 4.0, and WHOOP MG.
+- Pure-Swift BLE frame parser (`WhoopFrameParser`) with Rust fallback for non-hot paths.
 - JSON-over-C bridge into the Goose Rust core.
-- Self-hosted server (`server/`): FastAPI + TimescaleDB, Dockerized; supports both device generations via `device_generation` field.
-- Automatic upload of decoded biometric data from iOS to server (10 stream tables with `synced` flag).
-- Health metric surfaces for Sleep, Recovery, Strain, Stress, Cardio Load, Energy Bank, Health Monitor, Packet Inputs, Algorithms, References, and Calibration.
+- Self-hosted server (`server/`): FastAPI + TimescaleDB, Dockerized.
+- Automatic upload of decoded biometric data from iOS to server (10 stream tables).
+- Health metric surfaces for Sleep, Recovery, Strain, Stress, Cardio Load, Energy Bank, Health Monitor, Packet Inputs, Coach, and Debug.
 - HealthKit sleep import and workout write support.
-- Coach surfaces that summarize local metrics and explain missing data.
-- More/Debug operational surfaces for device state, capture, sync, algorithms, storage, privacy, and support.
-- Workout Live Activity extension.
+- CI: unsigned IPA builds for SideStore sideloading.
 
 ## Requirements
 
-- macOS with Xcode installed.
-- iOS 26.0 SDK and an iOS 26.0 capable simulator/device.
-- Apple Developer signing configured for the `com.tigercraft4.goose` bundle identifier.
+- macOS with Xcode installed (only if building locally).
+- iOS 26.0 SDK and an iOS 26.0 capable device.
+- Configure `APP_BUNDLE_ID` in `Config/Signing.xcconfig` (or `Config/Local.xcconfig`, gitignored).
 - Rust and Cargo for building the Goose Rust core from the committed `Rust/core` source.
 - iOS Rust targets installed with `rustup`; see the Rust Core Bridge section below.
 - Docker (for the self-hosted server — optional).
@@ -122,11 +143,18 @@ Built Rust `.a` archives (`Rust/iphoneos/libgoose_core.a` and `Rust/iphonesimula
 Clone the repository first:
 
 ```bash
-git clone https://github.com/tigercraft4/goose.git
+git clone https://github.com/jconn0/goose.git
 cd goose
 ```
 
 Open `GooseSwift.xcodeproj` in Xcode and build the `GooseSwift` scheme, or build from the command line.
+
+Unsigned IPA via GitHub Actions (no Mac needed — runs on `macos-15` runners):
+
+```yaml
+# On any push to a v* tag, or manually via Actions → Release → Run workflow
+# Downloads the unsigned .ipa for SideStore/AltStore sideloading
+```
 
 Simulator build:
 
@@ -166,7 +194,7 @@ After a successful physical-device build, reinstall and launch:
 ```sh
 xcrun devicectl device uninstall app \
   --device <device-id> \
-  com.tigercraft4.goose
+  <bundle-id>
 
 xcrun devicectl device install app \
   --device <device-id> \
@@ -175,7 +203,7 @@ xcrun devicectl device install app \
 xcrun devicectl device process launch \
   --device <device-id> \
   --terminate-existing \
-  com.tigercraft4.goose
+  <bundle-id>
 ```
 
 ## Self-Hosted Server
