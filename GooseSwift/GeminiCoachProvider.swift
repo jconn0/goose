@@ -82,11 +82,27 @@ enum GeminiCredentialStore {
 
 // MARK: - GeminiProviderError
 
-enum GeminiProviderError: Error {
+enum GeminiProviderError: Error, LocalizedError {
   case missingAPIKey
   case invalidResponse
   case noModelSelected
   case modelFetchFailed(String)
+  case streamError(String)
+
+  var errorDescription: String? {
+    switch self {
+    case .missingAPIKey:
+      return String(localized: "API key not found")
+    case .invalidResponse:
+      return String(localized: "Invalid response from server")
+    case .noModelSelected:
+      return String(localized: "No model selected")
+    case .modelFetchFailed(let message):
+      return message
+    case .streamError(let message):
+      return message
+    }
+  }
 }
 
 // MARK: - GeminiModel
@@ -216,16 +232,36 @@ final class GeminiCoachProvider: CoachProvider {
       apiKey: apiKey
     )
 
+    let (initialBytes, initialResponse) = try await URLSession.shared.bytes(for: request)
+    guard let httpResponse = initialResponse as? HTTPURLResponse else {
+      throw GeminiProviderError.invalidResponse
+    }
+
+    guard (200..<300).contains(httpResponse.statusCode) else {
+      var errorBody = ""
+      for try await line in initialBytes.lines {
+        errorBody += line
+      }
+      let message: String
+      switch httpResponse.statusCode {
+      case 401:
+        message = String(localized: "Authentication failed. Check your API key.")
+      case 403:
+        message = String(localized: "Access forbidden. Your API key may lack permissions.")
+      case 429:
+        message = String(localized: "Rate limit exceeded. Please try again later.")
+      default:
+        message = errorBody.isEmpty
+          ? String(localized: "Server returned error \(httpResponse.statusCode)")
+          : String(localized: "Error \(httpResponse.statusCode): \(errorBody)")
+      }
+      throw GeminiProviderError.streamError(message)
+    }
+
     return AsyncStream { continuation in
       Task {
         do {
-          let (bytes, response) = try await URLSession.shared.bytes(for: request)
-          guard let httpResponse = response as? HTTPURLResponse,
-                (200..<300).contains(httpResponse.statusCode) else {
-            continuation.finish()
-            return
-          }
-          for try await line in bytes.lines {
+          for try await line in initialBytes.lines {
             try Task.checkCancellation()
             if let delta = self.extractGeminiDelta(from: line) {
               continuation.yield(delta)

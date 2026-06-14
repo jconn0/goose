@@ -92,6 +92,18 @@ final class GeminiProviderTests: XCTestCase {
     provider.signOut()
   }
 
+  // MARK: - Error descriptions
+
+  func testStreamErrorDescription() {
+    let error = GeminiProviderError.streamError("Test error message")
+    XCTAssertEqual(error.errorDescription, "Test error message")
+  }
+
+  func testMissingAPIKeyErrorDescription() {
+    let error = GeminiProviderError.missingAPIKey
+    XCTAssertNotNil(error.errorDescription)
+  }
+
   // MARK: - Sign out clears error state
 
   func testSignOutClearsModelFetchError() throws {
