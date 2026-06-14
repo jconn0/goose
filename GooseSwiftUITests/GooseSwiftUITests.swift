@@ -149,12 +149,16 @@ final class GooseSwiftUITests: XCTestCase {
     if apiKeyField.exists {
       apiKeyField.tap()
       apiKeyField.typeText("test-api-key-abc123\n")
-    } else if let tableField = app.tables.secureTextFields["gemini_api_key_field"].firstMatch; tableField.exists {
-      tableField.tap()
-      tableField.typeText("test-api-key-abc123\n")
-    } else if let cvField = app.collectionViews.secureTextFields["gemini_api_key_field"].firstMatch; cvField.exists {
-      cvField.tap()
-      cvField.typeText("test-api-key-abc123\n")
+    } else {
+      let tableField = app.tables.secureTextFields["gemini_api_key_field"].firstMatch
+      if tableField.exists {
+        tableField.tap()
+        tableField.typeText("test-api-key-abc123\n")
+      } else {
+        let cvField = app.collectionViews.secureTextFields["gemini_api_key_field"].firstMatch
+        cvField.tap()
+        cvField.typeText("test-api-key-abc123\n")
+      }
     }
 
     let saveButton = app.buttons["gemini_save_api_key_button"]
