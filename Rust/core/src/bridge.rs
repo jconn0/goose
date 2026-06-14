@@ -49,6 +49,9 @@ use crate::{
         DebugEventInput, DebugSessionStartInput, append_debug_event, debug_session_snapshot,
         finish_debug_command, start_debug_command, start_debug_session,
     },
+    ecg::{
+        EcgSessionFrameInput, EcgSessionInput, extract_labrador_samples_from_hex,
+    },
     energy_rollup::{
         EnergyCaptureValidationOptions, EnergyDailyRollupOptions, EnergyHourlyRollupOptions,
         rollup_energy_day_for_store, rollup_energy_hour_for_store,
@@ -9365,6 +9368,201 @@ fn debug_session_snapshot_bridge(args: DebugSessionSnapshotArgs) -> GooseResult<
     serde_json::to_value(snapshot).map_err(|error| {
         GooseError::message(format!("cannot serialize debug session snapshot: {error}"))
     })
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgExtractSamplesArgs {
+    hex_payload: String,
+}
+
+fn ecg_extract_samples_bridge(args: EcgExtractSamplesArgs) -> GooseResult<serde_json::Value> {
+    let result = extract_labrador_samples_from_hex(&args.hex_payload)?;
+    serde_json::to_value(result)
+        .map_err(|error| GooseError::message(format!("cannot serialize ecg samples: {error}")))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgCreateSessionArgs {
+    database_path: String,
+    session_id: String,
+    started_at: String,
+}
+
+fn ecg_create_session_bridge(args: EcgCreateSessionArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store_hot(&args.database_path)?;
+    let inserted = store.start_ecg_session(EcgSessionInput {
+        session_id: &args.session_id,
+        started_at: &args.started_at,
+    })?;
+    let session = store.ecg_session(&args.session_id)?.ok_or_else(|| {
+        GooseError::message(format!("ecg session {} not found after create", args.session_id))
+    })?;
+    serde_json::to_value(json!({
+        "inserted": inserted,
+        "session": session,
+    }))
+    .map_err(|error| GooseError::message(format!("cannot serialize ecg session: {error}")))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgRecordFrameArgs {
+    database_path: String,
+    session_id: String,
+    frame_id: String,
+    packet_type: i64,
+    sample_count: i64,
+    #[serde(default)]
+    flags: Option<i64>,
+    #[serde(default)]
+    channels_gain: String,
+    captured_at: String,
+}
+
+fn ecg_record_frame_bridge(args: EcgRecordFrameArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store_hot(&args.database_path)?;
+    let inserted = store.record_ecg_frame(EcgSessionFrameInput {
+        session_id: &args.session_id,
+        frame_id: &args.frame_id,
+        packet_type: args.packet_type,
+        sample_count: args.sample_count,
+        flags: args.flags,
+        channels_gain: &args.channels_gain,
+        captured_at: &args.captured_at,
+    })?;
+    Ok(json!({ "inserted": inserted }))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgFinishSessionArgs {
+    database_path: String,
+    session_id: String,
+    finished_at: String,
+    #[serde(default)]
+    avg_heart_rate_bpm: Option<i64>,
+    #[serde(default)]
+    classification: Option<String>,
+}
+
+fn ecg_finish_session_bridge(args: EcgFinishSessionArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store_hot(&args.database_path)?;
+    let session = store.finish_ecg_session(
+        &args.session_id,
+        &args.finished_at,
+        args.avg_heart_rate_bpm,
+        args.classification.as_deref(),
+    )?;
+    serde_json::to_value(json!({ "session": session }))
+        .map_err(|error| GooseError::message(format!("cannot serialize ecg session: {error}")))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgListSessionsArgs {
+    database_path: String,
+}
+
+fn ecg_list_sessions_bridge(args: EcgListSessionsArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store(&args.database_path)?;
+    let sessions = store.list_ecg_sessions()?;
+    serde_json::to_value(json!({
+        "session_count": sessions.len(),
+        "sessions": sessions,
+    }))
+    .map_err(|error| GooseError::message(format!("cannot serialize ecg sessions: {error}")))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgGetSessionArgs {
+    database_path: String,
+    session_id: String,
+}
+
+fn ecg_get_session_bridge(args: EcgGetSessionArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store(&args.database_path)?;
+    let detail = store.get_ecg_session_detail(&args.session_id)?;
+    serde_json::to_value(detail)
+        .map_err(|error| GooseError::message(format!("cannot serialize ecg session detail: {error}")))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgSetClassificationArgs {
+    database_path: String,
+    session_id: String,
+    classification: String,
+}
+
+fn ecg_set_classification_bridge(args: EcgSetClassificationArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store_hot(&args.database_path)?;
+    let session = store.set_ecg_session_classification(&args.session_id, &args.classification)?;
+    serde_json::to_value(json!({ "session": session }))
+        .map_err(|error| GooseError::message(format!("cannot serialize ecg session: {error}")))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgSetSymptomsNotesArgs {
+    database_path: String,
+    session_id: String,
+    #[serde(default)]
+    symptoms_json: String,
+    #[serde(default)]
+    notes: Option<String>,
+}
+
+fn ecg_set_symptoms_notes_bridge(args: EcgSetSymptomsNotesArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store_hot(&args.database_path)?;
+    let symptoms = if args.symptoms_json.is_empty() { "[]" } else { &args.symptoms_json };
+    let session = store.set_ecg_session_symptoms_notes(
+        &args.session_id,
+        symptoms,
+        args.notes.as_deref(),
+    )?;
+    serde_json::to_value(json!({ "session": session }))
+        .map_err(|error| GooseError::message(format!("cannot serialize ecg session: {error}")))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgDeleteSessionArgs {
+    database_path: String,
+    session_id: String,
+}
+
+fn ecg_delete_session_bridge(args: EcgDeleteSessionArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store_hot(&args.database_path)?;
+    let deleted = store.delete_ecg_session(&args.session_id)?;
+    Ok(json!({ "deleted": deleted }))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct EcgClassifyBasicArgs {
+    database_path: String,
+    session_id: String,
+}
+
+fn ecg_classify_basic_bridge(args: EcgClassifyBasicArgs) -> GooseResult<serde_json::Value> {
+    let store = open_bridge_store(&args.database_path)?;
+    let detail = store.get_ecg_session_detail(&args.session_id)?.ok_or_else(|| {
+        GooseError::message(format!("ecg session {} not found", args.session_id))
+    })?;
+    let frame_count = detail.frames.len();
+    let sample_count_total = detail.sample_count_total;
+    let avg_hr = detail.session.avg_heart_rate_bpm;
+    let classification = if frame_count == 0 {
+        "inconclusive_no_frames".to_string()
+    } else {
+        match avg_hr {
+            Some(hr) if hr < 50 => "low_hr".to_string(),
+            Some(hr) if hr >= 50 && hr <= 100 => "sinus_rhythm".to_string(),
+            Some(hr) if hr > 100 => "high_hr".to_string(),
+            Some(_) | None => "inconclusive".to_string(),
+        }
+    };
+    let _ = store.set_ecg_session_classification(&args.session_id, &classification);
+    serde_json::to_value(json!({
+        "classification": classification,
+        "frame_count": frame_count,
+        "sample_count_total": sample_count_total,
+        "avg_heart_rate_bpm": avg_hr,
+    }))
+    .map_err(|error| GooseError::message(format!("cannot serialize ecg classification: {error}")))
 }
 
 fn metric_result_to_value<T: Serialize>(result: T) -> GooseResult<serde_json::Value> {

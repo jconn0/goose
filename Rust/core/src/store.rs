@@ -11,7 +11,7 @@ use crate::{
     validation_labels::OFFICIAL_WHOOP_LABEL_POLICY,
 };
 
-pub const CURRENT_SCHEMA_VERSION: i64 = 21;
+pub const CURRENT_SCHEMA_VERSION: i64 = 22;
 pub const DEFAULT_RAW_EVIDENCE_PAYLOAD_RETENTION_LIMIT_BYTES: i64 = 512 * 1024 * 1024;
 
 const ALLOWED_METRIC_SOURCE_KINDS: [&str; 4] = [
@@ -1685,6 +1685,34 @@ impl GooseStore {
 
             CREATE INDEX IF NOT EXISTS idx_exercise_sessions_device_ts ON exercise_sessions(device_id, start_ts);
 
+            CREATE TABLE IF NOT EXISTS ecg_sessions (
+                session_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL DEFAULT 'recording',
+                started_at TEXT NOT NULL,
+                finished_at TEXT,
+                duration_seconds REAL,
+                avg_heart_rate_bpm INTEGER,
+                classification TEXT,
+                symptoms_json TEXT NOT NULL DEFAULT '[]',
+                notes TEXT,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS ecg_session_frames (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL REFERENCES ecg_sessions(session_id) ON DELETE CASCADE,
+                frame_id TEXT NOT NULL REFERENCES decoded_frames(frame_id) ON DELETE CASCADE,
+                packet_type INTEGER NOT NULL,
+                sample_count INTEGER NOT NULL,
+                flags INTEGER,
+                channels_gain BLOB,
+                captured_at TEXT NOT NULL,
+                UNIQUE(session_id, frame_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_ecg_session_frames_session
+                ON ecg_session_frames(session_id);
+
             CREATE TABLE IF NOT EXISTS hr_samples (
                 device_id TEXT NOT NULL,
                 ts REAL NOT NULL,
@@ -1827,7 +1855,8 @@ impl GooseStore {
             INSERT OR IGNORE INTO goose_schema_migrations(version) VALUES (19);
             INSERT OR IGNORE INTO goose_schema_migrations(version) VALUES (20);
             INSERT OR IGNORE INTO goose_schema_migrations(version) VALUES (21);
-            PRAGMA user_version = 21;
+            INSERT OR IGNORE INTO goose_schema_migrations(version) VALUES (22);
+            PRAGMA user_version = 22;
             "#,
         )?;
         self.ensure_raw_evidence_columns()?;
@@ -9246,9 +9275,9 @@ mod sync_schema_tests {
     }
 
     #[test]
-    fn test_schema_version_is_21() {
-        let store = make_store();
-        assert_eq!(store.schema_version().unwrap(), 21);
+    fn test_schema_version_is_22() {
+        let store = GooseStore::open_in_memory().unwrap();
+        assert_eq!(store.schema_version().unwrap(), 22);
     }
 
     #[test]

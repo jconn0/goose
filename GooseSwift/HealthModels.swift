@@ -16,6 +16,7 @@ enum HealthRoute: String, CaseIterable, Identifiable, Hashable {
   case algorithms
   case referenceComparisons
   case calibration
+  case ecg
 
   var id: String { rawValue }
 
@@ -33,6 +34,7 @@ enum HealthRoute: String, CaseIterable, Identifiable, Hashable {
     case .algorithms: "Algorithms"
     case .referenceComparisons: "Reference Comparisons"
     case .calibration: "Calibration"
+    case .ecg: "ECG"
     }
   }
 
@@ -50,6 +52,7 @@ enum HealthRoute: String, CaseIterable, Identifiable, Hashable {
     case .algorithms: "function"
     case .referenceComparisons: "scalemass"
     case .calibration: "slider.horizontal.3"
+    case .ecg: "waveform.path.ecg.rectangle"
     }
   }
 
