@@ -8,32 +8,55 @@ struct CoachSettingsSheet: View {
   @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    List {
-      Section(String(localized: "Provider")) {
-        ForEach(registry.allProviders, id: \.id) { provider in
-          CoachProviderPickerRow(
-            provider: provider,
-            isActive: provider.id == registry.activeProvider?.id
-          ) {
-            registry.selectProvider(id: provider.id)
+    ScrollView {
+      VStack(spacing: 24) {
+        SettingsSection(String(localized: "Provider")) {
+          VStack(spacing: 0) {
+            ForEach(registry.allProviders, id: \.id) { provider in
+              CoachProviderPickerRow(
+                provider: provider,
+                isActive: provider.id == registry.activeProvider?.id
+              ) {
+                registry.selectProvider(id: provider.id)
+  }
+}
+
+// MARK: - SettingsSection
+
+private struct SettingsSection<Content: View>: View {
+  let title: String
+  @ViewBuilder let content: () -> Content
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(title)
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .textCase(.uppercase)
+        .padding(.horizontal, 16)
+
+      content()
+        .padding(.horizontal, 16)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+          }
+        }
+        SettingsSection(String(localized: "Configuration")) {
+          providerConfigContent
+        }
+        if let active = registry.activeProvider, !active.availablePresets.isEmpty {
+          SettingsSection(String(localized: "Model")) {
+            CoachModelPresetPickerView(chat: chat, presets: active.availablePresets)
           }
         }
       }
-
-      Section(String(localized: "Configuration")) {
-        providerConfigContent
-      }
-
-      if let active = registry.activeProvider, !active.availablePresets.isEmpty {
-        Section(String(localized: "Model")) {
-          CoachModelPresetPickerView(chat: chat, presets: active.availablePresets)
-        }
-      }
+      .padding(.vertical, 8)
     }
     .navigationTitle(String(localized: "Coach Settings"))
     .navigationBarTitleDisplayMode(.inline)
     .accessibilityIdentifier("coach_settings_sheet")
-    .id("settings_\(registry.activeProvider?.id ?? "none")")
     .toolbar {
       ToolbarItem(placement: .topBarLeading) {
         Button(String(localized: "Done")) {
