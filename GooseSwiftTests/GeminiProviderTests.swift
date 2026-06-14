@@ -25,40 +25,36 @@ final class GeminiProviderTests: XCTestCase {
 
   // MARK: - SSE delta extraction
 
-  func testGeminiDeltaExtraction() throws {
-    let provider = GeminiCoachProvider()
-
+  func testGeminiDeltaExtraction() {
     let validLine = #"data: {"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}"#
-    let result = provider.extractGeminiDelta(from: validLine)
+    let result = GeminiCoachProvider.extractGeminiDelta(from: validLine)
     XCTAssertEqual(result, "Hello", "extractGeminiDelta must return 'Hello' for a valid candidates line")
 
     let emptyCandidates = #"data: {"candidates":[]}"#
-    let resultEmpty = provider.extractGeminiDelta(from: emptyCandidates)
+    let resultEmpty = GeminiCoachProvider.extractGeminiDelta(from: emptyCandidates)
     XCTAssertNil(resultEmpty, "extractGeminiDelta must return nil for empty candidates array")
 
     let noPrefix = #"{"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}"#
-    let resultNoPrefix = provider.extractGeminiDelta(from: noPrefix)
+    let resultNoPrefix = GeminiCoachProvider.extractGeminiDelta(from: noPrefix)
     XCTAssertNil(resultNoPrefix, "extractGeminiDelta must return nil for line without data: prefix")
 
     let noText = #"data: {"candidates":[{"content":{"parts":[{"image":"abc"}]}}]}"#
-    let resultNoText = provider.extractGeminiDelta(from: noText)
+    let resultNoText = GeminiCoachProvider.extractGeminiDelta(from: noText)
     XCTAssertNil(resultNoText, "extractGeminiDelta must return nil when text key is absent")
   }
 
   // MARK: - Non-streaming delta extraction
 
   func testExtractNonStreamingDelta() {
-    let provider = GeminiCoachProvider()
-
     let validJSON = #"{"candidates":[{"content":{"parts":[{"text":"Hello from Gemini"}]}}]}"#
-    let result = provider.extractNonStreamingDelta(from: validJSON)
+    let result = GeminiCoachProvider.extractNonStreamingDelta(from: validJSON)
     XCTAssertEqual(result, "Hello from Gemini", "extractNonStreamingDelta must extract text from a non-streaming response")
 
     let emptyCandidates = #"{"candidates":[]}"#
-    XCTAssertNil(provider.extractNonStreamingDelta(from: emptyCandidates), "Must return nil for empty candidates")
+    XCTAssertNil(GeminiCoachProvider.extractNonStreamingDelta(from: emptyCandidates), "Must return nil for empty candidates")
 
     let invalidJSON = "not json"
-    XCTAssertNil(provider.extractNonStreamingDelta(from: invalidJSON), "Must return nil for invalid JSON")
+    XCTAssertNil(GeminiCoachProvider.extractNonStreamingDelta(from: invalidJSON), "Must return nil for invalid JSON")
   }
 
   // MARK: - Model parsing filter logic (pure dictionary tests)

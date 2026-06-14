@@ -70,13 +70,17 @@ private struct CoachMessageText: View {
     Group {
       if message.role == .assistant {
         VStack(alignment: .leading, spacing: 4) {
-          ForEach(markdownLines.indices, id: \.self) { index in
-            let line = markdownLines[index]
-            if line.isEmpty {
-              Color.clear
-                .frame(height: 6)
-            } else {
-              Text(Self.markdownText(for: line))
+          if message.isStreaming {
+            Text(message.text)
+          } else {
+            ForEach(markdownLines.indices, id: \.self) { index in
+              let line = markdownLines[index]
+              if line.isEmpty {
+                Color.clear
+                  .frame(height: 6)
+              } else {
+                Text(Self.markdownText(for: line))
+              }
             }
           }
         }
