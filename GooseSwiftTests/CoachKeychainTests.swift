@@ -3,48 +3,47 @@ import XCTest
 
 final class CoachKeychainTests: XCTestCase {
 
-  // MARK: - COACH-02: Keychain roundtrip for Claude and Custom endpoint
-
-  override func tearDown() {
-    super.tearDown()
-    // Clean up any Keychain state left by tests
+  override func setUp() {
+    super.setUp()
     try? ClaudeCredentialStore.delete()
     try? CustomEndpointCredentialStore.delete()
   }
 
+  override func tearDown() {
+    try? ClaudeCredentialStore.delete()
+    try? CustomEndpointCredentialStore.delete()
+    super.tearDown()
+  }
+
   func testClaudeKeychainRoundtrip() throws {
     let testKey = "test-key-\(UUID().uuidString)"
-
-    // Save a key
+    try requireKeychain()
     try ClaudeCredentialStore.save(testKey)
-
-    // Load it back — must match
     let loaded = try ClaudeCredentialStore.load()
     XCTAssertEqual(loaded, testKey, "Loaded key must match the saved key")
-
-    // Delete it
     try ClaudeCredentialStore.delete()
-
-    // Load after delete — must be nil
     let afterDelete = try ClaudeCredentialStore.load()
     XCTAssertNil(afterDelete, "Key must be nil after deletion")
   }
 
   func testCustomEndpointKeychainRoundtrip() throws {
     let testKey = "custom-test-key-\(UUID().uuidString)"
-
-    // Save a key
+    try requireKeychain()
     try CustomEndpointCredentialStore.save(testKey)
-
-    // Load it back — must match
     let loaded = try CustomEndpointCredentialStore.load()
     XCTAssertEqual(loaded, testKey, "Loaded custom endpoint key must match the saved key")
-
-    // Delete it
     try CustomEndpointCredentialStore.delete()
-
-    // Load after delete — must be nil
     let afterDelete = try CustomEndpointCredentialStore.load()
     XCTAssertNil(afterDelete, "Custom endpoint key must be nil after deletion")
+  }
+
+  private func requireKeychain() throws {
+    let probe = "goose.test.probe-\(UUID().uuidString)"
+    do {
+      try ClaudeCredentialStore.save(probe)
+      try ClaudeCredentialStore.delete()
+    } catch {
+      throw XCTSkip("Keychain unavailable on this destination")
+    }
   }
 }
