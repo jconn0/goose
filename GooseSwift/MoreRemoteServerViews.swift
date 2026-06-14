@@ -144,7 +144,7 @@ struct MoreRemoteServerView: View {
           }
 
           // Row 4: Rows pending sync flag
-          LabeledContent("Sync pendente") {
+          LabeledContent("Sync pending") {
             HStack(spacing: 8) {
               if model.syncPendingRowCount > 0 {
                 Text("\(model.syncPendingRowCount) rows")

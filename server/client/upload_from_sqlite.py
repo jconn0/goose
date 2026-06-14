@@ -100,11 +100,11 @@ def main():
 
     pending = count_pending(args.db)
     if not pending:
-        print("Nenhum hr_sample pendente (synced=0).")
+        print("No hr_sample pending (synced=0).")
         return
 
     for dev, n in pending.items():
-        print(f"  device {dev}: {n:,} rows pendentes")
+        print(f"  device {dev}: {n:,} rows pending")
     total_pending = sum(pending.values())
     print(f"Total: {total_pending:,} rows\n")
 

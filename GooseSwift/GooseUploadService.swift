@@ -476,7 +476,7 @@ final class GooseUploadService: @unchecked Sendable {
   }
 
   // Trigger manual backfill + upload of all pending streams.
-  // Called from the More tab "Sync pendente" button.
+  // Called from the More tab "Sync pending" button.
   func triggerBackfill(deviceID: UUID, deviceType: String, sinceTimestamp: Date) {
     Task.detached(priority: .utility) { [weak self] in
       guard let self else { return }
