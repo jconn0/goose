@@ -134,12 +134,15 @@ Known deferred: BLE5-01/02 (hardware-gated, real WHOOP 5.0 device), HAP-04 (RE-g
 
 ### v11.0 PR Integration, Code Health & App Polish
 
-- [ ] **Phase 74: Fork PR Integration — UX, i18n & Auth** - Integrate tigercraft4 PRs #132–#136 (units, localisation, UUIDs, ChatGPT auth)
-- [ ] **Phase 75: Fork PR Integration — BLE, Sync & Home** - Integrate tigercraft4 PRs #131, #135, #137 (firmware recovery, warm-up state, sync progress)
-- [ ] **Phase 76: Upstream PR Integration** - Cherry-pick upstream b-nnett/goose PRs #4, #12, #29, #31 (main-thread safety, scroll jitter)
-- [ ] **Phase 77: Codebase Audit** - Full codebase map + deep review of phases 67-73 + fix all critical findings
-- [ ] **Phase 78: Performance & BLE Reliability** - SQLite query optimisation, startup lazy-init, BLE auth retry (SEED-001)
-- [ ] **Phase 79: Polish & Deferred Features** - Debug tab 3-tabs, Support rename, Breathe haptics, live strain accumulator
+- [x] **Phase 74: Fork PR Integration — UX, i18n & Auth** - Integrate tigercraft4 PRs #132–#136 (units, localisation, UUIDs, ChatGPT auth)
+- [x] **Phase 75: Fork PR Integration — BLE, Sync & Home** - Integrate tigercraft4 PRs #131, #135, #137 (firmware recovery, warm-up state, sync progress)
+- [x] **Phase 76: Upstream PR Integration** - Cherry-pick upstream b-nnett/goose PRs #4, #12, #29, #31 (main-thread safety, scroll jitter)
+- [x] **Phase 77: Codebase Audit** - Full codebase map + deep review of phases 67-73 + fix all critical findings
+- [x] **Phase 78: Performance & BLE Reliability** - SQLite query optimisation, startup lazy-init, BLE auth retry (SEED-001)
+- [x] **Phase 79: Polish & Deferred Features** - Debug tab 3-tabs, Support rename, Breathe haptics, live strain accumulator
+- [ ] **Phase 80: Resting HR Floor Filter** - Fix anomalously low resting HR values from historical sync (issue #130)
+- [ ] **Phase 81: Battery Level Fix** - Fix battery always showing 100% for Gen4/Gen5 devices (issue #149, SEED-002)
+- [ ] **Phase 82: HealthKit Import Persistence** - Persist HealthKit imported data to SQLite (issue #150)
 
 ## Phase Details
 
@@ -210,6 +213,33 @@ Known deferred: BLE5-01/02 (hardware-gated, real WHOOP 5.0 device), HAP-04 (RE-g
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 80: Resting HR Floor Filter
+**Goal**: Fix anomalously low resting HR values (e.g. 32 bpm) produced by historical sync by adding a physiological plausibility floor to the resting HR estimation pipeline
+**Depends on**: Phase 77
+**Requirements**: BUG-HR-01
+**Success Criteria** (what must be TRUE):
+  1. Resting HR values below 30 bpm are rejected from the estimation pipeline in `Rust/core/src/metric_features.rs`; EXPLAIN with: the existing filter at line ~4494 allows 25 bpm through — tighten to 30 bpm minimum consistent with WHOOP's documented range
+  2. Historical sync that previously produced 32 bpm now produces a plausible value (or no value if insufficient data)
+**Plans**: TBD
+
+### Phase 81: Battery Level Fix
+**Goal**: Fix battery level always showing 100% for Gen4/Gen5 WHOOP devices by correctly parsing the battery byte from BLE notifications
+**Depends on**: Phase 77
+**Requirements**: BUG-BAT-01
+**Success Criteria** (what must be TRUE):
+  1. Battery percentage from BLE R22/realtime notifications is correctly decoded and displayed — not always 100%
+  2. Both Gen4 and Gen5 device battery levels reflect the actual charge state
+**Plans**: TBD
+
+### Phase 82: HealthKit Import Persistence
+**Goal**: Persist HealthKit imported data (resting HR, HRV, workouts, sleep) to SQLite so it survives app relaunch
+**Depends on**: Phase 69
+**Requirements**: BUG-HK-01
+**Success Criteria** (what must be TRUE):
+  1. After "Import from Apple Health" and app relaunch, HealthKit-sourced metrics are visible in Health views — no re-import required
+  2. HealthKit data is written to the appropriate SQLite tables (apple_daily or metric_series) via the Rust bridge
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -233,12 +263,15 @@ Known deferred: BLE5-01/02 (hardware-gated, real WHOOP 5.0 device), HAP-04 (RE-g
 | 65. Generic BLE State Machine | v9.0 | 1/1 | Complete | 2026-06-11 |
 | 66. Cap Sense / On-Wrist Detection | v9.0 | 0/TBD | Not started | - |
 | 67–73. v10.0 Phases | v10.0 | 17/17 | Complete | 2026-06-13 |
-| 74. Fork PR Integration — UX, i18n & Auth | v11.0 | 0/TBD | Not started | - |
-| 75. Fork PR Integration — BLE, Sync & Home | v11.0 | 0/TBD | Not started | - |
-| 76. Upstream PR Integration | v11.0 | 0/TBD | Not started | - |
-| 77. Codebase Audit | v11.0 | 0/TBD | Not started | - |
-| 78. Performance & BLE Reliability | v11.0 | 0/TBD | Not started | - |
-| 79. Polish & Deferred Features | v11.0 | 0/TBD | Not started | - |
+| 74. Fork PR Integration — UX, i18n & Auth | v11.0 | 5/5 | Complete | 2026-06-13 |
+| 75. Fork PR Integration — BLE, Sync & Home | v11.0 | 3/3 | Complete | 2026-06-13 |
+| 76. Upstream PR Integration | v11.0 | 1/1 | Complete | 2026-06-13 |
+| 77. Codebase Audit | v11.0 | 3/3 | Complete | 2026-06-14 |
+| 78. Performance & BLE Reliability | v11.0 | 3/3 | Complete | 2026-06-14 |
+| 79. Polish & Deferred Features | v11.0 | 4/4 | Complete | 2026-06-14 |
+| 80. Resting HR Floor Filter | v11.0 | 0/TBD | Not started | - |
+| 81. Battery Level Fix | v11.0 | 0/TBD | Not started | - |
+| 82. HealthKit Import Persistence | v11.0 | 0/TBD | Not started | - |
 
 ## Backlog
 

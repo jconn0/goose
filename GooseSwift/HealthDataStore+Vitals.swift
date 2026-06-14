@@ -102,13 +102,18 @@ extension HealthDataStore {
   }
 
   func wristTemperatureHealthMonitorSnapshot(base snapshot: HealthMetricSnapshot) -> HealthMetricSnapshot {
+    let imperial = TemperatureFormatting.preferredIsImperial
+    let valueTransform: ((Double) -> Double)? = imperial
+      ? { TemperatureFormatting.deltaValue(celsiusDelta: $0, imperial: true) }
+      : nil
     if let stored = dailyRecoveryMetricSnapshot(
       base: snapshot,
       valueKey: "skin_temperature_delta_c",
-      unit: "C",
+      unit: TemperatureFormatting.unitSuffix(imperial: imperial),
       fractionDigits: 1,
       metricName: "skin temperature delta",
-      signed: true
+      signed: true,
+      valueTransform: valueTransform
     ) {
       return stored
     }
@@ -207,10 +212,12 @@ extension HealthDataStore {
         return fallback
       }
       let packetCount = packetEvidenceFrameCount()
+      // firstPacketAction text is written for engineers; the raw action
+      // stays on the Packet Inputs screen, not in the card freshness slot.
       return unavailablePacketSnapshot(
         base: snapshot,
         status: packetCount > 0 ? "Field unresolved" : "No packet data",
-        freshness: firstPacketAction(in: report) ?? packetCountText(packetCount) ?? "No RHR",
+        freshness: packetCountText(packetCount) ?? "No RHR",
         provenance: restingHeartRateFeatureProvenanceSummary(),
         sourceDetail: "resting HR packet feature unavailable"
       )
@@ -395,7 +402,7 @@ extension HealthDataStore {
       return unavailablePacketSnapshot(
         base: snapshot,
         status: "Validation pending",
-        freshness: firstPacketAction(in: report) ?? packetCountText(packetCount) ?? "HRV unverified",
+        freshness: packetCountText(packetCount) ?? "HRV unverified",
         provenance: hrvFeatureProvenanceSummary(),
         sourceDetail: "HRV requires validated beat-interval semantics before display"
       )
@@ -419,7 +426,7 @@ extension HealthDataStore {
       return unavailablePacketSnapshot(
         base: snapshot,
         status: packetCount > 0 ? "Field unresolved" : "No packet data",
-        freshness: firstPacketAction(in: report) ?? packetCountText(packetCount) ?? "No HRV",
+        freshness: packetCountText(packetCount) ?? "No HRV",
         provenance: hrvFeatureProvenanceSummary(),
         sourceDetail: "validated HRV packet feature unavailable"
       )

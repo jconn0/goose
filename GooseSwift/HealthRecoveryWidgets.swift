@@ -365,6 +365,7 @@ struct RecoveryV2TrendBand: View {
 struct V24BiometricsCard: View {
   let palette: SleepV2Palette
   let result: V24BiometricsResult
+  @AppStorage(OnboardingStorage.unitSystem) private var unitSystemRaw = MoreProfileUnitSystem.imperial.rawValue
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -372,11 +373,11 @@ struct V24BiometricsCard: View {
         Image(systemName: "sensor.fill")
           .font(.subheadline.weight(.semibold))
           .foregroundStyle(palette.accent)
-        Text("Biometria V24")
+        Text("V24 Biometrics")
           .font(.headline.weight(.semibold))
           .foregroundStyle(palette.text)
         Spacer()
-        Text("não calibrado")
+        Text("uncalibrated")
           .font(.caption2.weight(.semibold))
           .foregroundStyle(.white)
           .padding(.horizontal, 7)
@@ -396,8 +397,8 @@ struct V24BiometricsCard: View {
         V24MetricCell(
           palette: palette,
           systemImage: "thermometer.medium",
-          label: "Temperatura",
-          value: result.skinTempText,
+          label: String(localized: "Skin temp"),
+          value: result.skinTempText(imperial: TemperatureFormatting.isImperial(unitSystemRaw: unitSystemRaw)),
           tint: .orange
         )
         Divider().frame(maxHeight: 48).background(palette.separator.opacity(0.54))
@@ -464,10 +465,10 @@ struct ReadinessLevelCard: View {
         .frame(width: 36)
 
       VStack(alignment: .leading, spacing: 4) {
-        Text("Prontidão")
+        Text("Readiness")
           .font(.caption.weight(.semibold))
           .foregroundStyle(palette.mutedText)
-        Text(result?.levelLabel ?? "Insuficiente")
+        Text(result?.levelLabel ?? String(localized: "Insufficient data"))
           .font(.headline.weight(.semibold))
           .foregroundStyle(result != nil ? (result?.levelColor ?? palette.text) : palette.secondaryText)
           .lineLimit(1)
@@ -488,7 +489,7 @@ struct ReadinessLevelCard: View {
           }
         }
       } else {
-        Text("< 28 dias de dados")
+        Text("< 28 days of data")
           .font(.caption.weight(.medium))
           .foregroundStyle(palette.mutedText)
           .lineLimit(2)

@@ -25,16 +25,60 @@ struct HealthSummaryPill: View {
   }
 }
 
+// Closing-donut progress ring: muted full-circle track with an accent arc.
+// A nil fraction renders an endlessly rotating partial arc (progress is
+// happening but the total is unknown).
+struct SyncProgressRing: View {
+  let fraction: Double?
+  var lineWidth: CGFloat = 6
+  var tint: Color = .blue
+  @State private var indeterminateSpin = false
+
+  var body: some View {
+    ZStack {
+      Circle()
+        .stroke(tint.opacity(0.18), lineWidth: lineWidth)
+      if let fraction {
+        Circle()
+          .trim(from: 0, to: min(max(fraction, 0.02), 1))
+          .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+          .rotationEffect(.degrees(-90))
+          .animation(.snappy(duration: 0.4), value: fraction)
+      } else {
+        Circle()
+          .trim(from: 0, to: 0.3)
+          .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+          .rotationEffect(.degrees(indeterminateSpin ? 270 : -90))
+          .animation(.linear(duration: 1.1).repeatForever(autoreverses: false), value: indeterminateSpin)
+          .onAppear { indeterminateSpin = true }
+          .onDisappear { indeterminateSpin = false }
+      }
+    }
+  }
+}
+
 struct HealthSourceBadge: View {
   let source: HealthDataSource
 
   var body: some View {
-    Text(source.kind.rawValue)
+    Text(label)
       .font(.caption2.weight(.bold))
       .foregroundStyle(color)
       .padding(.horizontal, 7)
       .padding(.vertical, 4)
       .background(color.opacity(0.12), in: Capsule())
+  }
+
+  // Kind raw values ("Bridge", "Local") are internal vocabulary; badges
+  // speak user language and the exact source stays in the trend sheet
+  // Details section and the developer screens.
+  private var label: String {
+    switch source.kind {
+    case .bridge: String(localized: "WHOOP")
+    case .local: String(localized: "Phone")
+    case .live: String(localized: "Live")
+    case .unavailable: String(localized: "No data")
+    }
   }
 
   private var color: Color {

@@ -8,6 +8,7 @@ struct HomeTimelineSection: View {
   let openSleep: () -> Void
   let openActivity: () -> Void
   let openRecovery: () -> Void
+  @AppStorage(OnboardingStorage.unitSystem) private var unitSystemRaw = MoreProfileUnitSystem.imperial.rawValue
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
@@ -89,7 +90,7 @@ struct HomeTimelineSection: View {
   }
 
   private func summary(for snapshot: HealthMetricSnapshot) -> String {
-    "\(snapshot.displayValue) - \(snapshot.status)"
+    "\(snapshot.displayValue) - \(snapshot.status.localizedHealthStatus)"
   }
 
   private func activitySummary(for item: ActivityTimelineItem) -> String {
@@ -146,6 +147,9 @@ struct HomeTimelineSection: View {
   }
 
   private func formatDistance(_ meters: Double) -> String {
+    if TemperatureFormatting.isImperial(unitSystemRaw: unitSystemRaw) {
+      return String(format: "%.2f mi", max(meters, 0) / fitnessMetersPerMile)
+    }
     if meters >= 1000 {
       return String(format: "%.2f km", meters / 1000)
     }

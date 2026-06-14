@@ -590,6 +590,11 @@ extension GooseBLEClient {
         completeHistoricalSync(reason: "historical_range_poll_complete")
         return
       }
+      if activeDeviceGeneration != .gen4,
+         historicalManager.historicalRangePageState?.pagesBehind == 0 {
+        completeHistoricalSync(reason: "historical_range_empty")
+        return
+      }
       writeHistoricalCommand(.sendHistoricalData)
     case .sendHistoricalData:
       scheduleHistoricalIdleCompletion(reason: "historical_transfer_idle")
@@ -662,6 +667,7 @@ extension GooseBLEClient {
         )
         return
       }
+      historicalSyncBurstsCompleted += 1
       let ackPayload: [UInt8]
       if activeDeviceGeneration == .gen4 {
         historicalManager.gen4HistoricalPageSeq &+= 1
@@ -731,10 +737,16 @@ extension GooseBLEClient {
     historicalManager.historyStartReceived = false
     historicalManager.historyEndReceived = false
     historicalManager.historyCompleteReceived = false
+    historicalManager.historicalRangePageState = nil
     historicalManager.historicalRangePendingResponses = 0
     historicalManager.historicalRangeRetryCount = 0
     historicalManager.historicalTransferRequestAttemptCount = 0
     historicalManager.historicalDataResultAckEnabled = true
+    // Reset the determinate sync-progress counters so a completion reached
+    // without going through startHistoricalDataSync cannot leak a stale total
+    // or burst count into the next sync session.
+    historicalSyncPagesTotal = nil
+    historicalSyncBurstsCompleted = 0
     let completedAt = Date()
     let rangeOnly = historicalManager.historicalRangePollOnly
     flushPendingHistoricalFramesIfNeeded(force: true)
@@ -767,10 +779,16 @@ extension GooseBLEClient {
     historicalManager.historyStartReceived = false
     historicalManager.historyEndReceived = false
     historicalManager.historyCompleteReceived = false
+    historicalManager.historicalRangePageState = nil
     historicalManager.historicalRangePendingResponses = 0
     historicalManager.historicalRangeRetryCount = 0
     historicalManager.historicalTransferRequestAttemptCount = 0
     historicalManager.historicalDataResultAckEnabled = true
+    // Reset the determinate sync-progress counters so a failure reached
+    // without going through startHistoricalDataSync cannot leak a stale total
+    // or burst count into the next sync session.
+    historicalSyncPagesTotal = nil
+    historicalSyncBurstsCompleted = 0
     flushPendingHistoricalFramesIfNeeded(force: true)
     historicalManager.failSync(status: "failed")
     historicalManager.historicalRangePollOnly = false

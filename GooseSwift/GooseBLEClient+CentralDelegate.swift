@@ -186,6 +186,7 @@ extension GooseBLEClient: CBCentralManagerDelegate {
     activePeripheral = peripheral
     peripheral.delegate = self
     clientHelloSentForCurrentConnection = false
+    metadataReadRetriesRemaining = 2
     // Cancel any pending scheduled retry and reset backoff before updating state.
     cancelReconnectCycle()
     reconnectBackoff.reset()
@@ -274,6 +275,7 @@ extension GooseBLEClient: CBCentralManagerDelegate {
     let shouldReconnect = rememberedDeviceID == peripheral.identifier
     autoConnectForPhysiologyCapture = false
     autoStartedPhysiologyCapture = false
+    authRetryPending = false
     readySyncWorkItem?.cancel()
     if isHistoricalSyncing {
       failHistoricalSync("WHOOP disconnected during historical sync. \(error?.localizedDescription ?? "No CoreBluetooth error was provided.")")

@@ -43,7 +43,28 @@ import OSLog
   var hardwareRevision: String?
   var softwareRevision: String?
   var manufacturerName: String?
+  // Budget for re-discovering Device Information after a failed read; reset on
+  // each connection. Failed reads are common right after a strap firmware
+  // update, when iOS still serves the pre-update GATT attribute cache.
+  var metadataReadRetriesRemaining = 2
   var historicalPacketCount = 0
+  // Determinate sync progress: total pages comes from the GET_DATA_RANGE
+  // response (V5 page words), bursts advance one per history_end metadata.
+  // Gen4 range responses don't expose a verified total, so the fraction is
+  // nil there and the UI falls back to an indeterminate ring.
+  var historicalSyncPagesTotal: Int?
+  var historicalSyncBurstsCompleted = 0
+  var historicalSyncFraction: Double? {
+    guard isHistoricalSyncing else {
+      return historicalSyncStatus == "synced" ? 1 : nil
+    }
+    guard let total = historicalSyncPagesTotal, total > 0 else {
+      return nil
+    }
+    // Burst-to-page mapping is approximate; cap below 1 so the ring only
+    // closes on the terminal synced state.
+    return min(Double(historicalSyncBurstsCompleted) / Double(total), 0.97)
+  }
   var lastHistoricalSyncCompletedAt: Date?
   var lastHistoricalRangeCommandStatus = "No GET_DATA_RANGE response"
   var alarmCommandStatus = "No alarm command sent"
@@ -314,6 +335,8 @@ import OSLog
   var highFrequencyHistorySyncRequestedExpiry: Date?
   var debugSkinTemperatureCommandSent = false
   var debugSkinTemperatureCommandWorkItem: DispatchWorkItem?
+  // BLE-REL-01: tracks whether a single auth retry is already pending. Reset on connect/disconnect.
+  var authRetryPending = false
 
   enum DefaultsKey {
     static let rememberedDeviceID = "goose.swift.rememberedDeviceID"
@@ -459,6 +482,18 @@ import OSLog
   struct PendingHistoricalCommand {
     let kind: HistoricalCommandKind
     let sequence: UInt8
+  }
+
+  struct HistoricalRangePageState: Equatable {
+    let pageCurrent: UInt32
+    let pageOldest: UInt32
+    let pageEnd: UInt32
+
+    var pagesBehind: Int64 {
+      pageCurrent < pageOldest
+        ? Int64(pageCurrent) + Int64(pageEnd) - Int64(pageOldest)
+        : Int64(pageCurrent) - Int64(pageOldest)
+    }
   }
 
   enum ClockCommandKind {
@@ -1091,10 +1126,6 @@ import OSLog
     bondingManager.onBondingStateChange = { [weak self] newState in
       guard let self else { return }
       self.updateConnectionState(newState.connectionStateString)
-    }
-    historicalManager.onSyncStateChange = { _ in
-      // @Observable tracks historicalManager.isHistoricalSyncing via the proxy var;
-      // the callback exists for future explicit observers if needed.
     }
     historicalManager.onSyncCompleted = { [weak self] completedAt in
       guard let self else { return }

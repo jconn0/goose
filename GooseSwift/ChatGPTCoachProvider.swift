@@ -1,5 +1,7 @@
 import Foundation
 
+@MainActor
+@Observable
 final class ChatGPTCoachProvider: CoachProvider {
   let id = "chatgpt"
   let displayName = "ChatGPT"

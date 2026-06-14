@@ -15,25 +15,30 @@ struct HomeDashboardView: View {
   @State private var bpmRefreshTask: Task<Void, Never>?
 
   var body: some View {
+    // Compute once per render — avoids calling healthStore.landingSnapshots(…) 9× per body pass.
+    let cached = landingSnapshots
     ScrollView {
       LazyVStack(alignment: .leading, spacing: 18) {
         HomeDailyScoreCard(
-          scores: scoreSnapshots,
-          actionSummary: dailyActionSummary,
+          scores: scoreSnapshots(using: cached),
           coachTip: CoachTipFactory.homeTip(healthStore: healthStore, appModel: model),
           openScore: openHealth,
           openCoach: openCoach
         )
 
+        if !baselineProgress.allReady {
+          HomeBaselineProgressCard(progress: baselineProgress)
+        }
+
         HomeStressEnergySection(
-          stress: landingSnapshot(for: .stress),
-          energy: landingSnapshot(for: .energyBank),
+          stress: landingSnapshot(for: .stress, in: cached),
+          energy: landingSnapshot(for: .energyBank, in: cached),
           openStress: { openHealth(.stress) }
         )
 
         HomeCardioLoadWidget(
-          snapshot: landingSnapshot(for: .cardioLoad),
-          days: cachedCardioLoadDays
+          snapshot: landingSnapshot(for: .cardioLoad, in: cached),
+          days: healthStore.cardioLoadWeeklyPoints()
         ) {
           showingCardioLoadSheet = true
           model.recordUIAction("health.sheet.opened", detail: "Cardio Load home widget")
@@ -45,9 +50,9 @@ struct HomeDashboardView: View {
         )
 
         HomeTimelineSection(
-          sleep: homeSnapshot(for: .sleep),
-          activity: homeSnapshot(for: .strain),
-          recovery: homeSnapshot(for: .recovery),
+          sleep: homeSnapshot(for: .sleep, in: cached),
+          activity: homeSnapshot(for: .strain, in: cached),
+          recovery: homeSnapshot(for: .recovery, in: cached),
           activities: model.homeActivityTimelineItems,
           openSleep: { openHealth(.sleep) },
           openActivity: { openHealth(.strain) },
@@ -60,21 +65,13 @@ struct HomeDashboardView: View {
         )
 
         HomeToolsGrid(
-          catalogReady: healthStore.catalogStatus.contains("loaded"),
+          catalogReady: healthStore.catalogStatus.localizedCaseInsensitiveContains("loaded") && !healthStore.catalogStatus.localizedCaseInsensitiveContains("not loaded"),
           openSleepCoach: {
             router.openCoach(prompt: "Sleep coach: review my sleep quality and give me advice")
           },
           openActivity: { openHealth(.strain) },
           openCoach: { router.openCoach() },
           openCalibration: { router.openMore(.algorithms) }
-        )
-
-        HomeEvidenceFooter(
-          rustStatus: model.rustStatus,
-          databasePath: healthStore.databasePath,
-          catalogSource: healthStore.catalogSource,
-          algorithmsByFamily: healthStore.selectedAlgorithmByFamily,
-          onTap: { router.openMore(.debug) }
         )
 
       }
@@ -122,6 +119,9 @@ struct HomeDashboardView: View {
     }
     .task {
       await healthStore.loadBridgeCatalogsIfNeeded()
+      // Fire-and-forget: this spawns its own Task internally, so the view task
+      // intentionally does not await the packet-input run; results publish later.
+      healthStore.refreshPacketInputsIfNeeded()
       model.refreshActivityTimeline(for: selectedDate)
       refreshSnapshots()
     }
@@ -140,10 +140,11 @@ struct HomeDashboardView: View {
       refreshSnapshots()
     }
     .sheet(isPresented: $showingScoreDatePicker) {
+      let cached = landingSnapshots
       ScoreDatePickerSheet(
         title: "Daily Scores",
         routes: [.sleep, .recovery, .strain],
-        snapshots: scorePickerSnapshots,
+        snapshots: scorePickerSnapshots(using: cached),
         selectedDate: $selectedDate
       )
     }
@@ -155,19 +156,36 @@ struct HomeDashboardView: View {
     }
   }
 
-  private var scoreSnapshots: [HealthMetricSnapshot] {
+  private var dailyActionSummary: String {
+    let inputAction = healthStore.metricInputReadinessNextActionSummary()
+    if !inputAction.isEmpty {
+      return inputAction
+    }
+    return healthStore.packetDerivedScoreNextActionSummary()
+  }
+
+  private var landingSnapshots: [HealthMetricSnapshot] {
+    healthStore.landingSnapshots(
+      liveHeartRateBPM: model.ble.liveHeartRateBPM,
+      liveHeartRateSource: model.ble.liveHeartRateSource,
+      liveHeartRateUpdatedAt: model.ble.liveHeartRateUpdatedAt,
+      stableDailyMetrics: true
+    )
+  }
+
+  private func scoreSnapshots(using cached: [HealthMetricSnapshot]) -> [HealthMetricSnapshot] {
     [
-      datedHomeSnapshot(for: .sleep),
-      datedHomeSnapshot(for: .recovery),
-      datedHomeSnapshot(for: .strain),
+      datedHomeSnapshot(for: .sleep, in: cached),
+      datedHomeSnapshot(for: .recovery, in: cached),
+      datedHomeSnapshot(for: .strain, in: cached),
     ]
   }
 
-  private var scorePickerSnapshots: [HealthMetricSnapshot] {
+  private func scorePickerSnapshots(using cached: [HealthMetricSnapshot]) -> [HealthMetricSnapshot] {
     [
-      homeSnapshot(for: .sleep),
-      homeSnapshot(for: .recovery),
-      homeSnapshot(for: .strain),
+      homeSnapshot(for: .sleep, in: cached),
+      homeSnapshot(for: .recovery, in: cached),
+      homeSnapshot(for: .strain, in: cached),
     ]
   }
 
@@ -188,12 +206,8 @@ struct HomeDashboardView: View {
     return state == "ready" || state == "connected"
   }
 
-  private var dailyActionSummary: String {
-    let inputAction = healthStore.metricInputReadinessNextActionSummary()
-    if !inputAction.isEmpty {
-      return inputAction
-    }
-    return healthStore.packetDerivedScoreNextActionSummary()
+  private var baselineProgress: BaselineProgressModel {
+    healthStore.baselineProgress()
   }
 
   private func refreshSnapshots() {
@@ -207,12 +221,12 @@ struct HomeDashboardView: View {
     cachedHealthMonitorSnapshots = healthStore.healthMonitorSnapshots(allowLiveFallbacks: false)
   }
 
-  private func landingSnapshot(for route: HealthRoute) -> HealthMetricSnapshot {
-    cachedLandingSnapshots.first { $0.route == route } ?? healthStore.snapshot(for: route)
+  private func landingSnapshot(for route: HealthRoute, in snapshots: [HealthMetricSnapshot]) -> HealthMetricSnapshot {
+    snapshots.first { $0.route == route } ?? healthStore.snapshot(for: route)
   }
 
-  private func homeSnapshot(for route: HealthRoute) -> HealthMetricSnapshot {
-    let snapshot = landingSnapshot(for: route)
+  private func homeSnapshot(for route: HealthRoute, in snapshots: [HealthMetricSnapshot]) -> HealthMetricSnapshot {
+    let snapshot = landingSnapshot(for: route, in: snapshots)
     guard route == .strain, snapshot.unit != "%" else {
       return snapshot
     }
@@ -235,8 +249,8 @@ struct HomeDashboardView: View {
     )
   }
 
-  private func datedHomeSnapshot(for route: HealthRoute) -> HealthMetricSnapshot {
-    ScoreDateTimeline.datedSnapshot(from: homeSnapshot(for: route), date: selectedDate)
+  private func datedHomeSnapshot(for route: HealthRoute, in snapshots: [HealthMetricSnapshot]) -> HealthMetricSnapshot {
+    ScoreDateTimeline.datedSnapshot(from: homeSnapshot(for: route, in: snapshots), date: selectedDate)
   }
 
   private func openHealth(_ route: HealthRoute) {
@@ -278,6 +292,14 @@ private struct HomeDeviceStatusCard: View {
     return rel.localizedString(for: date, relativeTo: Date()).capitalized
   }
 
+  private var syncProgressText: String {
+    if let fraction = ble.historicalSyncFraction {
+      let percentText = "\(Int((fraction * 100).rounded()))%"
+      return String(localized: "Syncing \(percentText) — \(ble.historicalPacketCount) packets")
+    }
+    return String(localized: "Syncing — \(ble.historicalPacketCount) packets")
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack {
@@ -291,6 +313,18 @@ private struct HomeDeviceStatusCard: View {
         Text(ble.connectionState.localizedConnectionState)
           .font(.caption.weight(.medium))
           .foregroundStyle(stateColor)
+      }
+
+      if ble.isHistoricalSyncing {
+        HStack(spacing: 8) {
+          SyncProgressRing(fraction: ble.historicalSyncFraction, lineWidth: 3, tint: .blue)
+            .frame(width: 18, height: 18)
+          Text(syncProgressText)
+            .font(.caption.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
       }
 
       HStack(spacing: 20) {
@@ -416,75 +450,6 @@ private struct HomeToolButton: View {
   }
 }
 
-// MARK: - HOME-03: Evidence Footer
-
-private struct HomeEvidenceFooter: View {
-  let rustStatus: String
-  let databasePath: String
-  let catalogSource: HealthDataSource
-  let algorithmsByFamily: [String: String]
-  let onTap: () -> Void
-
-  private var coreVersion: String {
-    if let range = rustStatus.range(of: "v\\d+\\.\\d+\\.\\d+", options: .regularExpression) {
-      return String(rustStatus[range])
-    }
-    return rustStatus.isEmpty ? "—" : "core"
-  }
-
-  private var storeFilename: String {
-    URL(fileURLWithPath: databasePath).lastPathComponent
-  }
-
-  private var dataMode: String { catalogSource.kind.rawValue }
-
-  var body: some View {
-    Button(action: onTap) {
-      VStack(alignment: .leading, spacing: 6) {
-        HStack {
-          Text("DATA PROVENANCE")
-            .font(.system(size: 10, weight: .black))
-            .foregroundStyle(.secondary)
-          Spacer()
-          Image(systemName: "chevron.right")
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(.tertiary)
-        }
-
-        HomeEvidenceRow(label: "Core", value: coreVersion)
-        HomeEvidenceRow(label: "Store", value: storeFilename)
-        HomeEvidenceRow(label: "Mode", value: dataMode)
-
-        if !algorithmsByFamily.isEmpty {
-          Divider().opacity(0.5)
-          ForEach(algorithmsByFamily.keys.sorted(), id: \.self) { family in
-            HomeEvidenceRow(label: family.capitalized, value: algorithmsByFamily[family] ?? "—")
-          }
-        }
-      }
-      .padding(12)
-      .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-    .buttonStyle(.plain)
-  }
-}
-
-private struct HomeEvidenceRow: View {
-  let label: String
-  let value: String
-
-  var body: some View {
-    HStack {
-      Text(label)
-        .font(.system(size: 11, weight: .medium))
-        .foregroundStyle(.secondary)
-      Spacer()
-      Text(value)
-        .font(.system(size: 11, weight: .semibold, design: .monospaced))
-        .foregroundStyle(.primary)
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-    }
-  }
-}
+// HOME-03 (evidence footer) moved to More → Developer → Debug as the
+// "Data Provenance" section — see MoreDebugViews.swift.
 
