@@ -3,7 +3,6 @@ import Foundation
 import SwiftUI
 import UIKit
 
-#if DEBUG
 struct HealthPreviewRouteHost: View {
   let route: HealthRoute
   let state: HealthPreviewState
@@ -16,7 +15,6 @@ struct HealthPreviewRouteHost: View {
     .environmentObject(AppRouter())
   }
 }
-#endif
 
 #Preview("Health Landing") {
   NavigationStack {
