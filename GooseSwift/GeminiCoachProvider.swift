@@ -110,6 +110,7 @@ enum GeminiProviderError: Error, LocalizedError {
 struct GeminiModel: Identifiable, Equatable {
   let id: String
   let displayName: String
+  let supportsStreaming: Bool
 }
 
 // MARK: - GeminiCoachProvider
@@ -161,36 +162,71 @@ final class GeminiCoachProvider: CoachProvider {
     }
 
     do {
-      let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models?key=\(apiKey)")!
-      var request = URLRequest(url: url)
-      request.httpMethod = "GET"
-      request.timeoutInterval = 30
+      var allModels: [[String: Any]] = []
+      var pageToken: String? = nil
+      let baseURL = "https://generativelanguage.googleapis.com/v1beta/models"
 
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse else {
-        modelFetchError = String(localized: "Invalid response from server")
+      repeat {
+        var urlString = "\(baseURL)?key=\(apiKey)&pageSize=100"
+        if let token = pageToken {
+          urlString += "&pageToken=\(token)"
+        }
+        guard let url = URL(string: urlString) else {
+          modelFetchError = String(localized: "Invalid request URL")
+          return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+          modelFetchError = String(localized: "Invalid response from server")
+          return
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+          let body = String(data: data, encoding: .utf8) ?? ""
+          if httpResponse.statusCode == 400 {
+            modelFetchError = String(localized: "Invalid request. Please check your API key.")
+          } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            modelFetchError = String(localized: "Authentication failed. Please check your API key and that the Gemini API is enabled.")
+          } else {
+            modelFetchError = String(localized: "Server returned error \(httpResponse.statusCode): \(body.prefix(200))")
+          }
+          return
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+          modelFetchError = String(localized: "Failed to parse models list")
+          return
+        }
+
+        if let models = json["models"] as? [[String: Any]] {
+          allModels.append(contentsOf: models)
+        }
+
+        pageToken = json["nextPageToken"] as? String
+      } while pageToken != nil
+
+      guard !allModels.isEmpty else {
+        modelFetchError = String(localized: "No models returned from API. Your API key may not have Gemini access enabled.")
         return
       }
-      guard (200..<300).contains(httpResponse.statusCode) else {
-        modelFetchError = String(localized: "Server returned error \(httpResponse.statusCode)")
-        return
-      }
 
-      guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let models = json["models"] as? [[String: Any]] else {
-        modelFetchError = String(localized: "Failed to parse models list")
-        return
-      }
-
-      let parsedModels = models.compactMap { model -> GeminiModel? in
+      let parsedModels = allModels.compactMap { model -> GeminiModel? in
         guard let name = model["name"] as? String,
-              let displayName = model["displayName"] as? String,
-              let methods = model["supportedGenerationMethods"] as? [String],
-              methods.contains("streamGenerateContent") else {
+              let displayName = model["displayName"] as? String else {
+          return nil
+        }
+        let methods = model["supportedGenerationMethods"] as? [String] ?? []
+        let canStream = methods.contains("streamGenerateContent")
+        let canGenerate = methods.contains("generateContent")
+        guard canStream || canGenerate else {
           return nil
         }
         let modelID = name.hasPrefix("models/") ? String(name.dropFirst(7)) : name
-        return GeminiModel(id: modelID, displayName: displayName)
+        return GeminiModel(id: modelID, displayName: displayName, supportsStreaming: canStream)
       }
 
       guard !parsedModels.isEmpty else {
@@ -225,11 +261,14 @@ final class GeminiCoachProvider: CoachProvider {
       throw GeminiProviderError.noModelSelected
     }
 
+    let modelSupportsStreaming = availableModels.first(where: { $0.id == modelID })?.supportsStreaming ?? true
+
     let request = try buildRequest(
       messages: messages,
       systemPrompt: systemPrompt,
       modelID: modelID,
-      apiKey: apiKey
+      apiKey: apiKey,
+      stream: modelSupportsStreaming
     )
 
     let (initialBytes, initialResponse) = try await URLSession.shared.bytes(for: request)
@@ -258,19 +297,33 @@ final class GeminiCoachProvider: CoachProvider {
       throw GeminiProviderError.streamError(message)
     }
 
-    return AsyncStream { continuation in
-      Task {
-        do {
-          for try await line in initialBytes.lines {
-            try Task.checkCancellation()
-            if let delta = self.extractGeminiDelta(from: line) {
-              continuation.yield(delta)
+    if modelSupportsStreaming {
+      return AsyncStream { continuation in
+        Task {
+          do {
+            for try await line in initialBytes.lines {
+              try Task.checkCancellation()
+              if let delta = self.extractGeminiDelta(from: line) {
+                continuation.yield(delta)
+              }
             }
+            continuation.finish()
+          } catch {
+            continuation.finish()
           }
-          continuation.finish()
-        } catch {
-          continuation.finish()
         }
+      }
+    } else {
+      var fullBody = ""
+      for try await line in initialBytes.lines {
+        fullBody += line
+      }
+      let text = self.extractNonStreamingDelta(from: fullBody) ?? ""
+      return AsyncStream { continuation in
+        if !text.isEmpty {
+          continuation.yield(text)
+        }
+        continuation.finish()
       }
     }
   }
@@ -290,13 +343,29 @@ final class GeminiCoachProvider: CoachProvider {
     return text
   }
 
+  nonisolated func extractNonStreamingDelta(from body: String) -> String? {
+    guard let data = body.data(using: .utf8),
+          let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let candidates = obj["candidates"] as? [[String: Any]],
+          let first = candidates.first,
+          let content = first["content"] as? [String: Any],
+          let parts = content["parts"] as? [[String: Any]],
+          let text = parts.first?["text"] as? String else { return nil }
+    return text
+  }
+
   private func buildRequest(
     messages: [CoachChatMessage],
     systemPrompt: String,
     modelID: String,
-    apiKey: String
+    apiKey: String,
+    stream: Bool = true
   ) throws -> URLRequest {
-    let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(modelID):streamGenerateContent?key=\(apiKey)&alt=sse"
+    let action = stream ? "streamGenerateContent" : "generateContent"
+    var urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(modelID):\(action)?key=\(apiKey)"
+    if stream {
+      urlString += "&alt=sse"
+    }
     guard let url = URL(string: urlString) else {
       throw GeminiProviderError.invalidResponse
     }

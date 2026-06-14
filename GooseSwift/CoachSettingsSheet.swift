@@ -275,6 +275,7 @@ private struct ClaudeConfigView: View {
         SecureField(String(localized: "Anthropic API key"), text: $apiKey)
           .textContentType(.password)
           .autocorrectionDisabled()
+          .onSubmit { saveClaudeKey() }
 
         Image(systemName: "lock")
           .foregroundStyle(.secondary)
@@ -409,6 +410,7 @@ private struct GeminiConfigView: View {
         SecureField(String(localized: "Gemini API Key"), text: $apiKey)
           .textInputAutocapitalization(.never)
           .autocorrectionDisabled()
+          .onSubmit { saveKey() }
 
         HStack {
           Button {
