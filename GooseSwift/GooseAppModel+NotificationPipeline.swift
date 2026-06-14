@@ -544,6 +544,7 @@ extension GooseAppModel {
         packetType: nil,
         healthPacketFamily: nil,
         heartRateBPM: nil,
+        r22BatteryPct: nil,
         movementSample: nil,
         whoopEvent: nil,
         dataSignal: nil
@@ -561,6 +562,7 @@ extension GooseAppModel {
           ?? parsed.map { healthPacketCaptureFamily(for: $0, capturedAt: event.capturedAt) }
         : nil,
       heartRateBPM: compact?.heartRateBPM ?? parsed.flatMap(extractHeartRate),
+      r22BatteryPct: compact?.r22BatteryPct,
       movementSample: extractMovementPacket(
         from: parsed ?? [:],
         compact: compact,
@@ -579,6 +581,7 @@ extension GooseAppModel {
   ) -> Bool {
     if interpretation.healthPacketFamily != nil
       || interpretation.heartRateBPM != nil
+      || interpretation.r22BatteryPct != nil
       || interpretation.movementSample != nil
       || interpretation.whoopEvent != nil
       || interpretation.dataSignal != nil {
@@ -654,6 +657,9 @@ extension GooseAppModel {
         capturedAt: event.capturedAt,
         minimumInterval: 1
       )
+    }
+    if let batteryPct = interpretation.r22BatteryPct, batteryPct <= 100 {
+      ble.applyBatteryLevel(batteryPct, capturedAt: event.capturedAt, sourceTitle: "r22.battery")
     }
     if let sample = interpretation.movementSample {
       handleMovementPacket(sample)

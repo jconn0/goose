@@ -130,6 +130,7 @@ final class HealthDataStore {
     selectedAlgorithmByFamily = [:]
     primarySleepDetail = nil
     databasePath = HealthDataStore.defaultDatabasePath()
+    Task { await self.loadPersistedHealthKitData() }
     Task { await self.refreshHeartRateTimeline() }
     heartRateSeriesUpdateObserver = NotificationCenter.default.addObserver(
       forName: HeartRateSeriesStore.didUpdateNotification,

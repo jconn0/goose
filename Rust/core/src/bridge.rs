@@ -3094,6 +3094,10 @@ fn compact_parsed_frame_summary(parsed: &ParsedFrame) -> serde_json::Value {
                 Some(DataPacketBodySummary::RawMotionK10 { heart_rate, .. }) => *heart_rate,
                 _ => None,
             };
+            let r22_battery_pct: Option<u8> = match body_summary.as_ref() {
+                Some(DataPacketBodySummary::R22Whoop5Hr { battery_pct, .. }) => *battery_pct,
+                _ => None,
+            };
             let movement = compact_k10_movement_summary(body_summary.as_ref());
             // CR-01 fix: when body_hex is suppressed (PERF-05 K10/K21), derive the actual
             // byte count from declared_len rather than from the empty string.
@@ -3113,6 +3117,7 @@ fn compact_parsed_frame_summary(parsed: &ParsedFrame) -> serde_json::Value {
                 "body_kind": body_kind,
                 "body_byte_count": body_byte_count,
                 "heart_rate": heart_rate,
+                "r22_battery_pct": r22_battery_pct,
                 "movement": movement,
                 "summary": format!("packet={packet_name}({packet}) seq={sequence} data.k={packet_k_text} domain={domain_text} body={body_kind} warnings={warning_count}"),
             })

@@ -153,6 +153,10 @@ extension GooseBLEClient {
         record(level: .warn, source: "ble.metadata", title: "battery.read.empty")
         return true
       }
+      guard raw <= 100 else {
+        record(level: .warn, source: "ble.metadata", title: "battery.read.invalid", body: "raw=\(raw) ignored")
+        return true
+      }
       applyBatteryLevel(Int(raw), capturedAt: capturedAt, sourceTitle: "battery.read")
       return true
     case batteryLevelStatusCharacteristicID:
