@@ -1,10 +1,5 @@
 name: Swift Build
 
-# Compile check for all Swift/Xcode changes on PRs.
-# Builds for iOS Simulator (faster than device, no signing needed).
-# Rust core compiles automatically via the Xcode build phase
-# (Scripts/build_ios_rust.sh) — aarch64-apple-ios-sim target installed here.
-
 on:
   push:
     branches: ["main"]

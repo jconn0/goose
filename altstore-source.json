@@ -1,10 +1,10 @@
 {
   "name": "Goose",
-  "identifier": "com.goose.app-source",
+  "identifier": "com.goose.cro-source",
   "apps": [
     {
       "name": "Goose",
-      "bundleIdentifier": "com.goose.app",
+      "bundleIdentifier": "com.goose.cro",
       "developerName": "Goose",
       "subtitle": "WHOOP biometric tracker",
       "localizedDescription": "iOS app that reads biometric data from WHOOP devices via BLE and persists it to a self-hosted FastAPI+TimescaleDB server.",

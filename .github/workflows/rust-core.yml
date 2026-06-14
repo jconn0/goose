@@ -17,8 +17,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  # MSRV pulled from Rust/core/Cargo.toml (`rust-version = "1.96"`).
-  # Keep this in sync if Cargo.toml is bumped.
   RUST_TOOLCHAIN: "1.96"
 
 jobs:
@@ -70,9 +68,6 @@ jobs:
     defaults:
       run:
         working-directory: Rust/core
-    # Advisory only for now: the crate currently emits ~120 clippy warnings.
-    # This job surfaces them in the PR checks tab without blocking merges.
-    # Flip `continue-on-error` to `false` once the existing warnings are cleared.
     continue-on-error: true
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
