@@ -116,10 +116,7 @@ final class GooseSwiftUITests: XCTestCase {
 
     tryNavigateToCoachSettings()
 
-    let geminiRow = app.buttons["coach_provider_gemini"]
-    XCTAssertTrue(geminiRow.waitForExistence(timeout: 5), "Gemini provider row should exist")
-    geminiRow.tap()
-    sleep(3)
+    selectGeminiProvider()
 
     let apiKeyFound = app.secureTextFields["gemini_api_key_field"].waitForExistence(timeout: 8)
       || app.tables.secureTextFields["gemini_api_key_field"].waitForExistence(timeout: 1)
@@ -135,10 +132,7 @@ final class GooseSwiftUITests: XCTestCase {
 
     tryNavigateToCoachSettings()
 
-    let geminiRow = app.buttons["coach_provider_gemini"]
-    XCTAssertTrue(geminiRow.waitForExistence(timeout: 5))
-    geminiRow.tap()
-    sleep(3)
+    selectGeminiProvider()
 
     let apiKeyField = app.secureTextFields["gemini_api_key_field"]
     let apiKeyFound = apiKeyField.waitForExistence(timeout: 8)
@@ -177,10 +171,7 @@ final class GooseSwiftUITests: XCTestCase {
 
     tryNavigateToCoachSettings()
 
-    let geminiRow = app.buttons["coach_provider_gemini"]
-    XCTAssertTrue(geminiRow.waitForExistence(timeout: 5))
-    geminiRow.tap()
-    sleep(3)
+    selectGeminiProvider()
 
     let apiKeyField = app.secureTextFields["gemini_api_key_field"]
     let apiKeyFound = apiKeyField.waitForExistence(timeout: 8)
@@ -282,5 +273,22 @@ final class GooseSwiftUITests: XCTestCase {
       return true
     }
     return false
+  }
+
+  private func selectGeminiProvider() {
+    let geminiPred = NSPredicate(format: "label CONTAINS %@", "Gemini")
+    let geminiRow = app.buttons.matching(geminiPred).firstMatch
+    XCTAssertTrue(geminiRow.waitForExistence(timeout: 5), "Gemini provider row should exist")
+    geminiRow.tap()
+    sleep(3)
+
+    // Verify selection registered
+    let activePred = NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "Gemini", "active")
+    let activeGeminiRow = app.buttons.matching(activePred).firstMatch
+    if !activeGeminiRow.waitForExistence(timeout: 5) {
+      // Retry tap
+      geminiRow.tap()
+      sleep(3)
+    }
   }
 }
