@@ -701,6 +701,46 @@ pub struct LabradorSignalBodyFields {
     pub warnings: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LabradorSamplesResult {
+    pub samples: Vec<i16>,
+    pub flags: Option<u16>,
+    pub channels_or_gain: Vec<u8>,
+    pub sample_count: u16,
+    pub parsed_count: usize,
+}
+
+pub fn extract_labrador_samples(payload: &[u8]) -> Option<LabradorSamplesResult> {
+    if payload.len() < 26 {
+        return None;
+    }
+
+    let flags = read_u16_le(payload, 13);
+    let sample_count = read_u16_le(payload, 24).unwrap_or(0);
+    let channels_or_gain = (15..=20)
+        .filter_map(|offset| payload.get(offset).copied())
+        .collect::<Vec<_>>();
+
+    let available_bytes = payload.len().saturating_sub(26);
+    let parsed_count = (sample_count as usize).min(available_bytes / 2);
+
+    let mut samples = Vec::with_capacity(parsed_count);
+    for index in 0..parsed_count {
+        let sample_offset = 26 + index * 2;
+        if let Some(value) = read_i16_le(payload, sample_offset) {
+            samples.push(value);
+        }
+    }
+
+    Some(LabradorSamplesResult {
+        samples,
+        flags,
+        channels_or_gain,
+        sample_count,
+        parsed_count,
+    })
+}
+
 fn parse_r22_payload(payload: &[u8]) -> ParsedPayload {
     let mut warnings = Vec::new();
     if payload.len() < 4 {
@@ -1130,7 +1170,7 @@ fn history_hr_marker_offset(packet_k: u8) -> Option<usize> {
     }
 }
 
-fn read_u16_le(bytes: &[u8], offset: usize) -> Option<u16> {
+pub fn read_u16_le(bytes: &[u8], offset: usize) -> Option<u16> {
     Some(u16::from_le_bytes([
         *bytes.get(offset)?,
         *bytes.get(offset + 1)?,
@@ -1146,7 +1186,7 @@ fn read_u32_le(bytes: &[u8], offset: usize) -> Option<u32> {
     ]))
 }
 
-fn read_i16_le(bytes: &[u8], offset: usize) -> Option<i16> {
+pub fn read_i16_le(bytes: &[u8], offset: usize) -> Option<i16> {
     Some(i16::from_le_bytes([
         *bytes.get(offset)?,
         *bytes.get(offset + 1)?,

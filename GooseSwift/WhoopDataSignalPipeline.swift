@@ -190,6 +190,16 @@ final class WhoopDataSignalPipeline: @unchecked Sendable {
       if shouldLog(sample, reason: "optical.packet.captured") {
         ble.record(source: "whoop.data", title: "optical.packet.captured", body: sample.logSummary)
       }
+      if (sample.packetK == 16 || sample.packetK == 17) {
+        Task { @MainActor in
+          guard ECGSessionController.shared.isRecording else { return }
+          ECGSessionController.shared.ingestFrame(
+            packetK: sample.packetK,
+            hexPayload: sample.bodyHex,
+            capturedAt: sample.capturedAt
+          )
+        }
+      }
     }
   }
 

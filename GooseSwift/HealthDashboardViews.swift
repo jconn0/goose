@@ -391,6 +391,8 @@ struct HealthRouteContentView: View {
       ReferenceComparisonsView(store: store)
     case .calibration:
       CalibrationHealthView(store: store)
+    case .ecg:
+      ECGScreen(store: store)
     }
   }
 }
