@@ -18,6 +18,13 @@
           "size": 11909146
         },
         {
+          "version": "8.2",
+          "date": "2026-06-14",
+          "localizedDescription": "- fix: prevent coach chat freeze/crash during streaming",
+          "downloadURL": "https://github.com/jconn0/goose/releases/download/v8.2/GooseSwift-v8.2-unsigned.ipa",
+          "size": 12441634
+        },
+        {
           "version": "8.1",
           "date": "2026-06-14",
           "localizedDescription": "- fix: Gemini API key submission, sign-in routing, and model fetching",
