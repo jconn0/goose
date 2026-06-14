@@ -45,6 +45,7 @@ struct LiveActivityContentView: View {
         FitnessCountdownView(value: countdownValue, activity: session.selectedActivity, onSkip: skipCountdown)
       } else if showingSummary {
         FitnessSummaryView(activity: session.selectedActivity, session: session, ble: ble, locationTracker: locationTracker) {
+          session.clearFinishedState()
           dismiss()
         }
       } else if !session.isActive {
