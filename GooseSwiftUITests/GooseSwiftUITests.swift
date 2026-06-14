@@ -121,6 +121,8 @@ final class GooseSwiftUITests: XCTestCase {
     let apiKeyFound = app.secureTextFields["gemini_api_key_field"].waitForExistence(timeout: 8)
       || app.tables.secureTextFields["gemini_api_key_field"].waitForExistence(timeout: 1)
       || app.collectionViews.secureTextFields["gemini_api_key_field"].waitForExistence(timeout: 1)
+      || app.tables.secureTextFields["gemini_api_key_field"].waitForExistence(timeout: 1)
+      || app.collectionViews.secureTextFields["gemini_api_key_field"].waitForExistence(timeout: 1)
     XCTAssertTrue(apiKeyFound, "Gemini API key field should appear after selecting Gemini provider")
 
     let aiStudioLink = app.links["gemini_ai_studio_link"]
