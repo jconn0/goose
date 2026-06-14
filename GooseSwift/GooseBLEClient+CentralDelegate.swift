@@ -191,6 +191,7 @@ extension GooseBLEClient: CBCentralManagerDelegate {
     cancelReconnectCycle()
     reconnectBackoff.reset()
     autoReconnectTargetID = nil
+    resetReconnectBackoff()
     let reason = pendingConnectionReason ?? "unknown"
     pendingConnectionReason = nil
     if !prioritizeLiveCaptureOnReady,
@@ -259,6 +260,13 @@ extension GooseBLEClient: CBCentralManagerDelegate {
       return true
     }
     return false
+=======
+    if rememberedDeviceID == peripheral.identifier {
+      scheduleReconnectWithBackoff(peripheral, reason: "auto.connect_failed")
+    } else {
+      updateReconnectState("connect failed")
+    }
+>>>>>>> ble-backoff
   }
 
   func centralManager(

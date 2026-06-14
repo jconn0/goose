@@ -288,6 +288,9 @@ import OSLog
   var reconnectWorkItem: DispatchWorkItem?
   var reconnectGeneration: Int = 0
   var startupReconnectAttempted = false
+  @Published var reconnectAttemptCount = 0
+  @Published var reconnectNextRetryAt: Date?
+  var reconnectBackoffWorkItem: DispatchWorkItem?
   var pendingConnectionReason: String?
   var pendingAutomaticHistoricalSyncReason: String?
   var clientHelloSentForCurrentConnection = false
@@ -377,6 +380,10 @@ import OSLog
   static let historicalPacketCountPublishInterval: TimeInterval = 1
   static let historicalProgressCallbackInterval: TimeInterval = 1
   static let strapClockAutoSyncThresholdSeconds: TimeInterval = 5
+  static let reconnectBaseDelay: TimeInterval = 1.0
+  static let reconnectMaxDelay: TimeInterval = 60.0
+  static let reconnectBackoffMultiplier: Double = 2.0
+  static let reconnectMaxAttempts = 10
   static let diagnosticLogFormatter: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
