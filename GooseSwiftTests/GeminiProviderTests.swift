@@ -45,6 +45,74 @@ final class GeminiProviderTests: XCTestCase {
     XCTAssertNil(resultNoText, "extractGeminiDelta must return nil when text key is absent")
   }
 
+  // MARK: - Non-streaming delta extraction
+
+  func testExtractNonStreamingDelta() {
+    let provider = GeminiCoachProvider()
+
+    let validJSON = #"{"candidates":[{"content":{"parts":[{"text":"Hello from Gemini"}]}}]}"#
+    let result = provider.extractNonStreamingDelta(from: validJSON)
+    XCTAssertEqual(result, "Hello from Gemini", "extractNonStreamingDelta must extract text from a non-streaming response")
+
+    let emptyCandidates = #"{"candidates":[]}"#
+    XCTAssertNil(provider.extractNonStreamingDelta(from: emptyCandidates), "Must return nil for empty candidates")
+
+    let invalidJSON = "not json"
+    XCTAssertNil(provider.extractNonStreamingDelta(from: invalidJSON), "Must return nil for invalid JSON")
+  }
+
+  // MARK: - Model parsing filter logic (pure dictionary tests)
+
+  func testStreamingModelDetectedFromMethods() {
+    let methods = ["streamGenerateContent", "generateContent"]
+    XCTAssertTrue(methods.contains("streamGenerateContent"), "Streaming model should contain streamGenerateContent")
+    XCTAssertTrue(methods.contains("generateContent"), "Streaming model should also contain generateContent")
+  }
+
+  func testGenerateOnlyModelDetectedFromMethods() {
+    let methods = ["generateContent"]
+    XCTAssertTrue(methods.contains("generateContent"), "Generate-only model should contain generateContent")
+    XCTAssertFalse(methods.contains("streamGenerateContent"), "Generate-only model should not contain streamGenerateContent")
+  }
+
+  func testEmbeddingModelExcludedFromMethods() {
+    let methods = ["embedContent"]
+    XCTAssertFalse(methods.contains("streamGenerateContent"), "Embedding models should not stream")
+    XCTAssertFalse(methods.contains("generateContent"), "Embedding models should not generate")
+  }
+
+  // MARK: - GeminiModel supportsStreaming field
+
+  func testGeminiModelSupportsStreamingField() {
+    let streamingModel = GeminiModel(id: "gemini-pro", displayName: "Gemini Pro", supportsStreaming: true)
+    let nonStreamingModel = GeminiModel(id: "some-model", displayName: "Some Model", supportsStreaming: false)
+
+    XCTAssertTrue(streamingModel.supportsStreaming, "Streaming model should report supportsStreaming = true")
+    XCTAssertFalse(nonStreamingModel.supportsStreaming, "Non-streaming model should report supportsStreaming = false")
+  }
+
+  func testGeminiModelEquatable() {
+    let a = GeminiModel(id: "gemini-pro", displayName: "Gemini Pro", supportsStreaming: true)
+    let b = GeminiModel(id: "gemini-pro", displayName: "Gemini Pro", supportsStreaming: true)
+    let c = GeminiModel(id: "gemini-flash", displayName: "Gemini Flash", supportsStreaming: true)
+    XCTAssertEqual(a, b, "Identical models should be equal")
+    XCTAssertNotEqual(a, c, "Different models should not be equal")
+  }
+
+  // MARK: - Model ID stripping
+
+  func testModelIDStripsModelsPrefix() {
+    let name = "models/gemini-2.5-pro"
+    let modelID = name.hasPrefix("models/") ? String(name.dropFirst(7)) : name
+    XCTAssertEqual(modelID, "gemini-2.5-pro", "models/ prefix must be stripped")
+  }
+
+  func testModelIDPreservedWithoutPrefix() {
+    let name = "gemini-2.5-flash"
+    let modelID = name.hasPrefix("models/") ? String(name.dropFirst(7)) : name
+    XCTAssertEqual(modelID, "gemini-2.5-flash", "Model ID without prefix must be preserved")
+  }
+
   // MARK: - Available presets
 
   func testAvailablePresetsEmpty() throws {

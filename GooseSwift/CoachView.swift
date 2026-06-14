@@ -116,6 +116,16 @@ struct CoachView: View {
     }
   }
 
+  private var activeProviderType: CoachProviderType {
+    switch registry.activeProvider?.id {
+    case "chatgpt": return .chatgpt
+    case "claude": return .claude
+    case "gemini": return .gemini
+    case "custom": return .custom
+    default: return .chatgpt
+    }
+  }
+
   @ViewBuilder
   private var chatSheetContent: some View {
     if chat.isSignedIn {
@@ -128,10 +138,12 @@ struct CoachView: View {
       )
     } else {
       CoachSignInScreen(
+        providerType: activeProviderType,
         loginStatus: chat.loginStatus,
         deviceCode: chat.deviceCode,
         errorMessage: chat.errorMessage,
-        signIn: chat.startOAuthSignIn
+        signIn: chat.startOAuthSignIn,
+        openSettings: { showingChat = false; showingSettings = true }
       )
     }
   }
