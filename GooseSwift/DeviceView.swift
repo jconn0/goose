@@ -729,7 +729,7 @@ private struct EventLogPreview: View {
 }
 
 private struct ReconnectBackoffBanner: View {
-  @ObservedObject var ble: GooseBLEClient
+  let ble: GooseBLEClient
 
   var body: some View {
     if ble.reconnectAttemptCount > 0 {
