@@ -7,7 +7,7 @@
 // Both targets derive their bundle IDs from APP_BUNDLE_ID automatically.
 // Find your team ID at: https://developer.apple.com/account — Membership Details
 
-APP_BUNDLE_ID = com.goose.app
+APP_BUNDLE_ID = com.goose.cro
 PRODUCT_BUNDLE_IDENTIFIER = $(APP_BUNDLE_ID)
 
 #include? "Local.xcconfig"

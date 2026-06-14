@@ -612,7 +612,9 @@ fn parse_data_packet_body_summary(
     }
 }
 
-fn parse_k16_raw_ecg_labrador_summary(payload: &[u8]) -> (Option<DataPacketBodySummary>, Vec<String>) {
+fn parse_k16_raw_ecg_labrador_summary(
+    payload: &[u8],
+) -> (Option<DataPacketBodySummary>, Vec<String>) {
     let Some((summary, warnings)) =
         parse_labrador_signal_body_summary(payload, "k16_samples", "k16_header_too_short")
     else {

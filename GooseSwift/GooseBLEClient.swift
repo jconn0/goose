@@ -288,8 +288,8 @@ import OSLog
   var reconnectWorkItem: DispatchWorkItem?
   var reconnectGeneration: Int = 0
   var startupReconnectAttempted = false
-  @Published var reconnectAttemptCount = 0
-  @Published var reconnectNextRetryAt: Date?
+  var reconnectAttemptCount = 0
+  var reconnectNextRetryAt: Date?
   var reconnectBackoffWorkItem: DispatchWorkItem?
   var pendingConnectionReason: String?
   var pendingAutomaticHistoricalSyncReason: String?
@@ -1007,7 +1007,7 @@ import OSLog
     guard isWhoopMG else {
       return "Not applicable"
     }
-    if !supportsV5SensorCommands {
+    if !supportsSensorCommands {
       return "Connect strap for ECG"
     }
     if physiologyCaptureStatus.lowercased().contains("starting")

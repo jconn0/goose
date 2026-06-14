@@ -8,6 +8,7 @@ final class GeminiProviderTests: XCTestCase {
 
   func testGeminiKeychainRoundtrip() throws {
     let key = "test-api-key-12345"
+    try requireKeychain()
 
     try? GeminiCredentialStore.delete()
 
@@ -57,6 +58,7 @@ final class GeminiProviderTests: XCTestCase {
 
   func testSaveAPIKeySetsAuthenticated() throws {
     let provider = GeminiCoachProvider()
+    try requireKeychain()
     try? GeminiCredentialStore.delete()
     provider.signOut()
 
@@ -73,6 +75,7 @@ final class GeminiProviderTests: XCTestCase {
 
   func testSendThrowsWhenNoModelSelected() async throws {
     let provider = GeminiCoachProvider()
+    try requireKeychain()
     try? GeminiCredentialStore.delete()
     try provider.saveAPIKey("test-key")
     provider.selectedModelID = ""
@@ -112,5 +115,15 @@ final class GeminiProviderTests: XCTestCase {
 
     XCTAssertNil(provider.modelFetchError, "modelFetchError must be nil after sign out")
     XCTAssertTrue(provider.availableModels.isEmpty, "availableModels must be empty after sign out")
+  }
+
+  private func requireKeychain() throws {
+    let probe = "goose.test.probe-\(UUID().uuidString)"
+    do {
+      try GeminiCredentialStore.save(probe)
+      try GeminiCredentialStore.delete()
+    } catch {
+      throw XCTSkip("Keychain unavailable on this destination")
+    }
   }
 }

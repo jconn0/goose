@@ -3,7 +3,7 @@
 
 This project moves quickly. Small, focused changes are easiest to review.
 
-Want to talk to other contributors? [Join the discussion on GitHub](https://github.com/tigercraft4/goose/discussions).
+Want to talk to other contributors? [Join the discussion on GitHub](https://github.com/jconn0/goose/discussions).
 
 ---
 
@@ -14,7 +14,7 @@ See [Getting Started](docs/guides/getting-started.md) for prerequisites and firs
 ### Prerequisites
 
 - macOS with Xcode installed (iOS 26 SDK required)
-- Apple Developer account with signing configured for bundle ID `com.tigercraft4.goose`
+  - Apple Developer account with signing configured for bundle ID `com.goose.swift`
 - Rust toolchain via `rustup`
 - iOS Rust targets:
 
@@ -27,7 +27,7 @@ rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
 ### Clone and open
 
 ```bash
-git clone https://github.com/tigercraft4/goose.git
+git clone https://github.com/jconn0/goose.git
 cd goose
 open GooseSwift.xcodeproj
 ```
@@ -152,6 +152,28 @@ These rules apply whenever touching `GooseRustBridge` or adding bridge call site
 ---
 
 ## PR Guidelines
+
+### Opening a PR
+
+- **All PRs must target `main` on `jconn0/goose`.** Do not open PRs against `b-nnett/goose` (upstream). Use:
+  ```bash
+  gh pr create --repo jconn0/goose --base main --head jconn0:<branch>
+  ```
+- Branches must be pushed to `origin` (`jconn0/goose`) first. The PR head must be `jconn0:<branch>`, not a branch on upstream.
+- Use `git worktree` for parallel feature branches to avoid workspace conflicts.
+
+### Build Checks (Required)
+
+- **A branch must pass build checks before a PR will be approved.** No PR will be merged with failing CI.
+- CI runs automatically on every push and PR via two workflows:
+  - **Rust Core CI** (`.github/workflows/rust-core-ci.yml`): `cargo test`, `cargo clippy`, `cargo fmt --check` on any commit that touches `Rust/core/`.
+  - **Swift Build CI** (`.github/workflows/swift-build.yml`): `xcodebuild` for any commit that touches `GooseSwift/`.
+- Run checks locally before pushing:
+  - Rust: `cargo test -p goose-core --locked --no-fail-fast && cargo clippy && cargo fmt --check`
+  - Swift: Build via Xcode or `xcodebuild` (see [Building](#building) section above).
+- Fix all red CI before requesting review. Green CI is a hard gate.
+
+### PR Content
 
 - Keep changes close to the feature or bug you are working on. Avoid bundling unrelated fixes.
 - Match the existing SwiftUI style before introducing new patterns.

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to build and attach IPA to (e.g. v7.0)"
+        description: "Tag to build and attach IPA to (e.g. v1.0)"
         required: true
         type: string
 
@@ -126,13 +126,13 @@ jobs:
           RELEASE_TAG: ${{ needs.build-ipa.outputs.tag }}
         run: |
           TAG="$RELEASE_TAG"
-          PREV_TAG=$(git tag --sort=version:refname | grep "^v" | awk "/${TAG}/{found=1; next} found{print; exit}" | head -1)
-          PREV_TAG_BEFORE=$(git tag --sort=version:refname | grep "^v" | awk "p==1{print; exit} /${TAG}/{p=1}" | head -1)
+          PREV_TAG=$(git tag --sort=version:refname | grep "^v" | awk -v tag="$TAG" '$0==tag{print prev; exit} {prev=$0}')
 
-          if [ -n "$PREV_TAG_BEFORE" ]; then
-            NOTES=$(git log "${PREV_TAG_BEFORE}..${TAG}" --pretty=format:"- %s" --no-merges)
+          FILTER='^\- (docs|chore|test|ci|build|fix\(release\)|fix\(altstore\)|chore\(altstore\))'
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log "${PREV_TAG}..${TAG}" --pretty=format:"- %s" --no-merges | grep -Ev "$FILTER" | head -20)
           else
-            NOTES=$(git log "${TAG}" --pretty=format:"- %s" --no-merges | head -30)
+            NOTES=$(git log "${TAG}" --pretty=format:"- %s" --no-merges | grep -Ev "$FILTER" | head -20)
           fi
 
           {
@@ -149,6 +149,7 @@ jobs:
           IPA_NAME: ${{ needs.build-ipa.outputs.ipa-name }}
           IPA_SIZE: ${{ needs.build-ipa.outputs.ipa-size }}
         with:
+          github-token: ${{ secrets.GH_PAT || github.token }}
           script: |
             const fs = require('fs');
             const tag = process.env.RELEASE_TAG;
@@ -181,7 +182,7 @@ jobs:
               core.info(`Created release ${releaseId} for ${tag}`);
             }
 
-            // 2. Delete existing IPA asset if present (avoid duplicate)
+            // 2. Delete existing IPA asset if present
             const assets = await github.rest.repos.listReleaseAssets({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -224,7 +225,6 @@ jobs:
             const version = tag.replace(/^v/, '');
             const today = new Date().toISOString().split('T')[0];
 
-            // Remove existing entry for this version if present
             app.versions = (app.versions || []).filter(v => v.version !== version);
             app.versions.unshift({
               version,
@@ -233,7 +233,6 @@ jobs:
               downloadURL: ipaURL,
               size: ipaSize,
             });
-            // Keep sorted descending
             app.versions.sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }));
 
             await github.rest.repos.createOrUpdateFileContents({

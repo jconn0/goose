@@ -1,16 +1,12 @@
 name: Swift Build
 
-# Compile check for all Swift/Xcode changes on PRs.
-# Builds for iOS Simulator (faster than device, no signing needed).
-# Rust core compiles automatically via the Xcode build phase
-# (Scripts/build_ios_rust.sh) — aarch64-apple-ios-sim target installed here.
-
 on:
   push:
     branches: ["main"]
     paths:
       - "GooseSwift/**"
       - "GooseWorkoutLiveActivityExtension/**"
+      - "GooseSwiftTests/**"
       - "GooseSwift.xcodeproj/**"
       - ".github/workflows/swift-build.yml"
   pull_request: {}
@@ -66,16 +62,120 @@ jobs:
             -derivedDataPath build/DerivedData \
             build
 
+  test:
+    name: XCTest (simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
+      - name: Install Rust and iOS simulator target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-ios-sim
+
+      - name: Cache cargo
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Rust/core/target
+          key: ${{ runner.os }}-cargo-sim-${{ hashFiles('Rust/core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-sim-
+
+      - name: Build for Testing
+        run: |
+          xcodebuild build-for-testing \
+            -project GooseSwift.xcodeproj \
+            -scheme GooseSwift \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            -derivedDataPath build/DerivedData
+
+      - name: Test Without Building
+        run: |
+          xcodebuild test-without-building \
+            -project GooseSwift.xcodeproj \
+            -scheme GooseSwift \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -derivedDataPath build/DerivedData \
+            -enableCodeCoverage NO
+
+  build-release:
+    name: Build iOS Release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
+      - name: Install Rust and iOS target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-ios-sim
+
+      - name: Cache cargo
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Rust/core/target
+          key: ${{ runner.os }}-cargo-sim-${{ hashFiles('Rust/core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-sim-
+
+      - name: Build Release
+        run: |
+          xcodebuild \
+            -project GooseSwift.xcodeproj \
+            -scheme GooseSwift \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            -derivedDataPath build/DerivedData-release \
+            build
+
   swift-gate:
     name: swift / gate
-    needs: [build]
+    needs: [build, test, build-release]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
           build="${{ needs.build.result }}"
+          test="${{ needs.test.result }}"
+          release="${{ needs.build-release.result }}"
           if [[ "$build" == "failure" || "$build" == "cancelled" ]]; then
             echo "build failed: $build" && exit 1
           fi
-          echo "swift CI passed (build=$build)"
+          if [[ "$test" == "failure" || "$test" == "cancelled" ]]; then
+            echo "test failed: $test" && exit 1
+          fi
+          if [[ "$release" == "failure" || "$release" == "cancelled" ]]; then
+            echo "release build failed: $release" && exit 1
+          fi
+          echo "swift CI passed (build=$build, test=$test, release=$release)"

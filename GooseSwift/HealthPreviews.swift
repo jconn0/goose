@@ -18,6 +18,7 @@ struct HealthPreviewRouteHost: View {
 }
 #endif
 
+#if DEBUG
 #Preview("Health Landing") {
   NavigationStack {
     HealthView(store: HealthDataStore())
@@ -147,3 +148,4 @@ struct HealthPreviewRouteHost: View {
 #Preview("Calibration - Missing") {
   HealthPreviewRouteHost(route: .calibration, state: .missing)
 }
+#endif

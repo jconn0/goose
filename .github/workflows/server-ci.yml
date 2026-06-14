@@ -1,9 +1,5 @@
 name: Server CI
 
-# Builds and tests the Goose server ingest service. The conftest.py fixture
-# manages a throwaway TimescaleDB container via docker run — no services: block
-# needed because Docker daemon is available on ubuntu-latest runners.
-
 on:
   push:
     branches: ["main"]

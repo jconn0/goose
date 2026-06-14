@@ -221,6 +221,13 @@
 			remoteGlobalIDString = B50000000000000000000001;
 			remoteInfo = GooseWorkoutLiveActivityExtension;
 		};
+		T70000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A70000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000001;
+			remoteInfo = GooseSwift;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -818,6 +825,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				T70000000000000000000002 /* PBXTargetDependency */,
 			);
 			name = GooseSwiftTests;
 			productName = GooseSwiftTests;
@@ -1137,6 +1145,11 @@
 			target = B50000000000000000000001 /* GooseWorkoutLiveActivityExtension */;
 			targetProxy = B70000000000000000000001 /* PBXContainerItemProxy */;
 		};
+		T70000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000001 /* GooseSwift */;
+			targetProxy = T70000000000000000000001 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -1423,7 +1436,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.goose.app.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.goose.cro.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
@@ -1450,7 +1463,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.goose.app.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.goose.cro.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
