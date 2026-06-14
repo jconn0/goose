@@ -34,6 +34,7 @@ struct CoachSettingsSheet: View {
     .navigationTitle(String(localized: "Coach Settings"))
     .navigationBarTitleDisplayMode(.inline)
     .accessibilityIdentifier("coach_settings_sheet")
+    .id("settings_\(registry.activeProvider?.id ?? "none")")
     .toolbar {
       ToolbarItem(placement: .topBarLeading) {
         Button(String(localized: "Done")) {
