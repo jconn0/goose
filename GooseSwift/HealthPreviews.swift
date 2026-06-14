@@ -3,6 +3,7 @@ import Foundation
 import SwiftUI
 import UIKit
 
+#if DEBUG
 struct HealthPreviewRouteHost: View {
   let route: HealthRoute
   let state: HealthPreviewState
@@ -15,7 +16,9 @@ struct HealthPreviewRouteHost: View {
     .environmentObject(AppRouter())
   }
 }
+#endif
 
+#if DEBUG
 #Preview("Health Landing") {
   NavigationStack {
     HealthView(store: HealthDataStore())
@@ -145,3 +148,4 @@ struct HealthPreviewRouteHost: View {
 #Preview("Calibration - Missing") {
   HealthPreviewRouteHost(route: .calibration, state: .missing)
 }
+#endif

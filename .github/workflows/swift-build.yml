@@ -90,19 +90,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-sim-
 
-      - name: Test
+      - name: Build for Testing
         run: |
-          xcodebuild test \
+          xcodebuild build-for-testing \
             -project GooseSwift.xcodeproj \
             -scheme GooseSwift \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
-            -parallelizeTargets NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
+            -derivedDataPath build/DerivedData
+
+      - name: Test Without Building
+        run: |
+          xcodebuild test-without-building \
+            -project GooseSwift.xcodeproj \
+            -scheme GooseSwift \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
             -derivedDataPath build/DerivedData \
             -enableCodeCoverage NO
 
