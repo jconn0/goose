@@ -247,3 +247,97 @@ struct MoreRemoteServerView: View {
     return m
   }())
 }
+
+// Cronometer connection settings — enter email/password to link your
+// Cronometer account. Credentials are stored in the iOS Keychain and
+// used to fetch daily nutrition totals for correlation with WHOOP data.
+struct MoreCronometerSettingsView: View {
+  @State private var email = ""
+  @State private var password = ""
+  @State private var isTesting = false
+  @State private var statusMessage = ""
+  @State private var isConnected = CronometerKeychain.hasCredentials()
+
+  var body: some View {
+    Form {
+      Section {
+        if isConnected {
+          HStack {
+            Image(systemName: "checkmark.circle.fill")
+              .foregroundStyle(.green)
+            Text("Connected to Cronometer")
+              .font(.subheadline)
+          }
+          Button("Disconnect", role: .destructive) {
+            try? CronometerKeychain.deleteCredentials()
+            isConnected = false
+            email = ""
+            password = ""
+            statusMessage = ""
+          }
+        } else {
+          TextField("Email", text: $email)
+            .keyboardType(.emailAddress)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+          SecureField("Password", text: $password)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+        }
+      } header: {
+        Text("Account")
+      } footer: {
+        Text("Your credentials are stored in the iOS Keychain. They are never sent to the Goose server — only directly to Cronometer to fetch nutrition totals.")
+      }
+
+      if !isConnected {
+        Section {
+          Button(action: connect) {
+            HStack {
+              if isTesting {
+                ProgressView().scaleEffect(0.8)
+              }
+              Text("Connect")
+                .frame(maxWidth: .infinity)
+            }
+          }
+          .disabled(email.isEmpty || password.isEmpty || isTesting)
+        }
+      }
+
+      if !isConnected && !statusMessage.isEmpty {
+        Section {
+          Text(statusMessage)
+            .font(.caption)
+            .foregroundStyle(statusMessage.hasPrefix("Success") ? .green : .red)
+        }
+      }
+    }
+    .navigationTitle("Cronometer")
+    .navigationBarTitleDisplayMode(.inline)
+    .listStyle(.insetGrouped)
+    .gooseListBackground()
+  }
+
+  private func connect() {
+    guard !email.isEmpty, !password.isEmpty else { return }
+    isTesting = true
+    statusMessage = ""
+    Task {
+      do {
+        let result = try await GooseCronometerAuth.verifyCredentials(
+          email: email, password: password)
+        await MainActor.run {
+          try? CronometerKeychain.saveCredentials(email: email, password: password)
+          isConnected = true
+          statusMessage = "Success — logged in as \(result["name"] as? String ?? email)"
+        }
+      } catch {
+        await MainActor.run {
+          statusMessage = "Connection failed: \(error.localizedDescription)"
+        }
+      }
+      await MainActor.run { isTesting = false }
+    }
+  }
+}

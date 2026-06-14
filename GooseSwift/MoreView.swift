@@ -175,6 +175,8 @@ struct MoreView: View {
       IntervalTimerView()
     case .metricExplorer:
       MetricExplorerView(healthStore: healthStore)
+    case .cronometer:
+      MoreCronometerSettingsView()
     }
   }
 

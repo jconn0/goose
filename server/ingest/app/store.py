@@ -70,6 +70,47 @@ def insert_raw_frames_batch(conn: psycopg.Connection, device_id: str, frames: li
     return {"inserted": inserted, "skipped": skipped}
 
 
+# ── Nutrition store ──────────────────────────────────────────────────────────
+
+def upsert_daily_nutrition(conn: psycopg.Connection, device_id: str, date_val,
+                           nutrition: dict) -> None:
+    """Upsert a single daily_nutrition row for (device_id, date). Idempotent:
+    re-posting the same day overwrites in place via ON CONFLICT DO UPDATE.
+    ``date_val`` is a datetime.date; ``nutrition`` is a flat dict with
+    optional macro fields + a ``micronutrients`` list/dict for JSONB."""
+    conn.execute(
+        """INSERT INTO daily_nutrition
+           (device_id, date, source, calories, protein_g, carbs_g, fat_g,
+            fiber_g, sugar_g, saturated_fat_g, sodium_mg, cholesterol_mg,
+            micronutrients, created_at)
+           VALUES (%s, %s, %s, %s, %s, %s, %s,
+                   %s, %s, %s, %s, %s,
+                   %s, now())
+           ON CONFLICT (device_id, date) DO UPDATE SET
+             source           = EXCLUDED.source,
+             calories         = EXCLUDED.calories,
+             protein_g        = EXCLUDED.protein_g,
+             carbs_g          = EXCLUDED.carbs_g,
+             fat_g            = EXCLUDED.fat_g,
+             fiber_g          = EXCLUDED.fiber_g,
+             sugar_g          = EXCLUDED.sugar_g,
+             saturated_fat_g  = EXCLUDED.saturated_fat_g,
+             sodium_mg        = EXCLUDED.sodium_mg,
+             cholesterol_mg   = EXCLUDED.cholesterol_mg,
+             micronutrients   = EXCLUDED.micronutrients,
+             created_at       = now()""",
+        (device_id, date_val,
+         nutrition.get("source", "cronometer"),
+         nutrition.get("calories"), nutrition.get("protein_g"),
+         nutrition.get("carbs_g"), nutrition.get("fat_g"),
+         nutrition.get("fiber_g"), nutrition.get("sugar_g"),
+         nutrition.get("saturated_fat_g"), nutrition.get("sodium_mg"),
+         nutrition.get("cholesterol_mg"),
+         json.dumps(nutrition.get("micronutrients")),
+         ),
+    )
+
+
 def upsert_streams(conn: psycopg.Connection, device_id: str, streams: dict) -> dict:
     counts = {"hr": 0, "rr": 0, "events": 0, "battery": 0,
               "spo2": 0, "skin_temp": 0, "resp": 0, "gravity": 0}
