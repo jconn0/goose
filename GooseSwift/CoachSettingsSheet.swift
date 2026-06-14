@@ -190,7 +190,6 @@ struct CoachProviderPickerRow: View {
       }
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
     .accessibilityIdentifier("coach_provider_\(provider.id)")
     .accessibilityAddTraits(isActive ? .isSelected : [])
     .accessibilityLabel("\(provider.displayName), \(provider.isAuthenticated ? String(localized: "Signed in") : String(localized: "Not signed in"))\(isActive ? String(localized: ", active") : "")")
