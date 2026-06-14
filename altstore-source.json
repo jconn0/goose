@@ -18,6 +18,13 @@
           "size": 11909146
         },
         {
+          "version": "8.1",
+          "date": "2026-06-14",
+          "localizedDescription": "- fix: Gemini API key submission, sign-in routing, and model fetching",
+          "downloadURL": "https://github.com/jconn0/goose/releases/download/v8.1/GooseSwift-v8.1-unsigned.ipa",
+          "size": 12429977
+        },
+        {
           "version": "8.0",
           "date": "2026-06-14",
           "localizedDescription": "- fix: skip keychain tests when keychain access unavailable on CI simulator\n- fix: add explicit target dependency from GooseSwiftTests to GooseSwift\n- fix: wrap #Preview blocks in #if DEBUG, use build-for-testing in CI",
