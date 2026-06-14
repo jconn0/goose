@@ -1,22 +1,5 @@
-import CryptoKit
 import Foundation
 import Security
-
-// MARK: - GeminiStoredToken
-
-struct GeminiStoredToken: Codable {
-  let accessToken: String
-  let refreshToken: String
-  let expiresAt: Date?
-  let updatedAt: Date
-
-  var needsRefresh: Bool {
-    if let expiresAt {
-      return expiresAt.timeIntervalSinceNow < 60
-    }
-    return Date().timeIntervalSince(updatedAt) > 50 * 60
-  }
-}
 
 // MARK: - GeminiKeychainError
 
@@ -25,32 +8,14 @@ enum GeminiKeychainError: Error {
   case deleteFailed(OSStatus)
 }
 
-// MARK: - GeminiKeychainStore (internal facade for tests)
-
-enum GeminiKeychainStore {
-  static func save(_ token: GeminiStoredToken) throws {
-    try GeminiKeychain.save(token)
-  }
-
-  static func load() throws -> GeminiStoredToken? {
-    try GeminiKeychain.load()
-  }
-
-  static func delete() throws {
-    try GeminiKeychain.delete()
-  }
-}
-
 // MARK: - GeminiKeychain
 
-private enum GeminiKeychain {
+enum GeminiKeychain {
   private static let service = "com.goose.swift.gemini"
-  private static let account = "oauth-token"
+  private static let account = "api-key"
 
-  static func save(_ token: GeminiStoredToken) throws {
-    let encoder = JSONEncoder()
-    encoder.dateEncodingStrategy = .iso8601
-    let data = try encoder.encode(token)
+  static func save(_ key: String) throws {
+    let data = Data(key.utf8)
     let query = baseQuery()
     SecItemDelete(query as CFDictionary)
 
@@ -64,7 +29,7 @@ private enum GeminiKeychain {
     }
   }
 
-  static func load() throws -> GeminiStoredToken? {
+  static func load() throws -> String? {
     var query = baseQuery()
     query[kSecReturnData as String] = true
     query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -74,13 +39,13 @@ private enum GeminiKeychain {
     guard status != errSecItemNotFound else {
       return nil
     }
-    guard status == errSecSuccess, let data = result as? Data else {
+    guard status == errSecSuccess else {
       return nil
     }
-
-    let decoder = JSONDecoder()
-    decoder.dateDecodingStrategy = .iso8601
-    return try decoder.decode(GeminiStoredToken.self, from: data)
+    guard let data = result as? Data else {
+      return nil
+    }
+    return String(data: data, encoding: .utf8)
   }
 
   static func delete() throws {
@@ -99,61 +64,117 @@ private enum GeminiKeychain {
   }
 }
 
+// MARK: - GeminiCredentialStore (internal facade for tests)
+
+enum GeminiCredentialStore {
+  static func save(_ key: String) throws {
+    try GeminiKeychain.save(key)
+  }
+
+  static func load() throws -> String? {
+    try GeminiKeychain.load()
+  }
+
+  static func delete() throws {
+    try GeminiKeychain.delete()
+  }
+}
+
 // MARK: - GeminiProviderError
 
 enum GeminiProviderError: Error {
-  case missingClientId
-  case missingToken
-  case tokenExchangeFailed(String)
+  case missingAPIKey
   case invalidResponse
+  case modelFetchFailed(String)
+}
+
+// MARK: - GeminiModel
+
+struct GeminiModel: Identifiable, Equatable {
+  let id: String
+  let displayName: String
 }
 
 // MARK: - GeminiCoachProvider
 
 @Observable
 final class GeminiCoachProvider: CoachProvider {
-  static let oauthClientIdKey = "goose.coach.gemini.oauthClientId"
+  static let selectedModelIDKey = "goose.coach.gemini.selectedModelID"
 
   let id = "gemini"
   let displayName = "Gemini"
-  let availablePresets: [CoachModelPreset] = [.gemini25Pro, .gemini25Flash]
+  let availablePresets: [CoachModelPreset] = []
 
-  private(set) var isExchangingToken = false
   private(set) var isAuthenticated: Bool
+  private(set) var isLoadingModels = false
+  private(set) var availableModels: [GeminiModel] = []
 
   init() {
     isAuthenticated = (try? GeminiKeychain.load()) != nil
   }
 
-  var oauthClientId: String {
-    UserDefaults.standard.string(forKey: Self.oauthClientIdKey) ?? ""
+  var selectedModelID: String {
+    get { UserDefaults.standard.string(forKey: Self.selectedModelIDKey) ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: Self.selectedModelIDKey) }
   }
 
-  // MARK: - PKCE helpers
-
-  nonisolated static func generateCodeVerifier() -> String {
-    var bytes = [UInt8](repeating: 0, count: 64)
-    _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-    return Data(bytes).base64EncodedString()
-      .replacingOccurrences(of: "+", with: "-")
-      .replacingOccurrences(of: "/", with: "_")
-      .replacingOccurrences(of: "=", with: "")
+  func saveAPIKey(_ key: String) throws {
+    try GeminiKeychain.save(key)
+    isAuthenticated = true
   }
-
-  nonisolated static func codeChallenge(for verifier: String) -> String {
-    let data = Data(verifier.utf8)
-    let hashed = Data(SHA256.hash(data: data))
-    return hashed.base64EncodedString()
-      .replacingOccurrences(of: "+", with: "-")
-      .replacingOccurrences(of: "/", with: "_")
-      .replacingOccurrences(of: "=", with: "")
-  }
-
-  // MARK: - CoachProvider
 
   func signOut() {
     try? GeminiKeychain.delete()
+    UserDefaults.standard.removeObject(forKey: Self.selectedModelIDKey)
     isAuthenticated = false
+    availableModels = []
+  }
+
+  func fetchAvailableModels() async {
+    isLoadingModels = true
+    defer { isLoadingModels = false }
+
+    guard let apiKey = try? GeminiKeychain.load(), !apiKey.isEmpty else {
+      return
+    }
+
+    do {
+      let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models?key=\(apiKey)")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "GET"
+      request.timeoutInterval = 30
+
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse,
+            (200..<300).contains(httpResponse.statusCode) else {
+        return
+      }
+
+      guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let models = json["models"] as? [[String: Any]] else {
+        return
+      }
+
+      let parsedModels = models.compactMap { model -> GeminiModel? in
+        guard let name = model["name"] as? String,
+              let displayName = model["displayName"] as? String,
+              let methods = model["supportedGenerationMethods"] as? [String],
+              methods.contains("streamGenerateContent") else {
+          return nil
+        }
+        let modelID = name.hasPrefix("models/") ? String(name.dropFirst(7)) : name
+        return GeminiModel(id: modelID, displayName: displayName)
+      }
+
+      await MainActor.run {
+        self.availableModels = parsedModels
+        if self.selectedModelID.isEmpty, let first = parsedModels.first {
+          self.selectedModelID = first.id
+        }
+      }
+    } catch {
+      return
+    }
   }
 
   func send(
@@ -161,27 +182,17 @@ final class GeminiCoachProvider: CoachProvider {
     systemPrompt: String,
     preset: CoachModelPreset
   ) async throws -> AsyncStream<String> {
-    let token = try await validToken()
-    let modelID = preset.geminiModelID ?? "gemini-2.5-flash"
-    let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(modelID):streamGenerateContent?alt=sse"
-    guard let url = URL(string: urlString) else {
-      throw GeminiProviderError.invalidResponse
+    guard let apiKey = try GeminiKeychain.load(), !apiKey.isEmpty else {
+      throw GeminiProviderError.missingAPIKey
     }
 
-    var request = URLRequest(url: url)
-    request.httpMethod = "POST"
-    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.timeoutInterval = 180
-
-    let body: [String: Any] = [
-      "systemInstruction": ["parts": [["text": systemPrompt]]],
-      "contents": messages.map { msg -> [String: Any] in
-        let role = msg.role == .user ? "user" : "model"
-        return ["role": role, "parts": [["text": msg.text]]]
-      },
-    ]
-    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+    let modelID = selectedModelID.isEmpty ? "gemini-2.0-flash" : selectedModelID
+    let request = try buildRequest(
+      messages: messages,
+      systemPrompt: systemPrompt,
+      modelID: modelID,
+      apiKey: apiKey
+    )
 
     return AsyncStream { continuation in
       Task {
@@ -206,30 +217,6 @@ final class GeminiCoachProvider: CoachProvider {
     }
   }
 
-  // MARK: - Token exchange and refresh
-
-  func handleRedirect(code: String, codeVerifier: String) async throws {
-    isExchangingToken = true
-    defer { isExchangingToken = false }
-
-    let clientId = oauthClientId
-    guard !clientId.isEmpty else {
-      throw GeminiProviderError.missingClientId
-    }
-
-    let params: [String: String] = [
-      "grant_type": "authorization_code",
-      "code": code,
-      "code_verifier": codeVerifier,
-      "client_id": clientId,
-      "redirect_uri": "gooseswift://oauth/gemini",
-    ]
-
-    let token = try await exchangeToken(params: params)
-    try GeminiKeychain.save(token)
-    isAuthenticated = true
-  }
-
   // MARK: - Internal helpers
 
   nonisolated func extractGeminiDelta(from line: String) -> String? {
@@ -245,75 +232,31 @@ final class GeminiCoachProvider: CoachProvider {
     return text
   }
 
-  private func validToken() async throws -> String {
-    guard var stored = try GeminiKeychain.load() else {
-      throw GeminiProviderError.missingToken
-    }
-
-    if stored.needsRefresh {
-      stored = try await refreshToken(stored)
-      try GeminiKeychain.save(stored)
-    }
-
-    return stored.accessToken
-  }
-
-  private func refreshToken(_ stored: GeminiStoredToken) async throws -> GeminiStoredToken {
-    let clientId = oauthClientId
-    guard !clientId.isEmpty else {
-      throw GeminiProviderError.missingClientId
-    }
-
-    let params: [String: String] = [
-      "grant_type": "refresh_token",
-      "refresh_token": stored.refreshToken,
-      "client_id": clientId,
-    ]
-
-    return try await exchangeToken(params: params)
-  }
-
-  private func exchangeToken(params: [String: String]) async throws -> GeminiStoredToken {
-    let url = URL(string: "https://oauth2.googleapis.com/token")!
-    let configuration = URLSessionConfiguration.ephemeral
-    configuration.httpShouldSetCookies = false
-    configuration.httpCookieAcceptPolicy = .never
-    let session = URLSession(configuration: configuration)
-
-    var request = URLRequest(url: url)
-    request.httpMethod = "POST"
-    request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-    request.setValue("application/json", forHTTPHeaderField: "Accept")
-    request.httpBody = formURLEncoded(params)
-
-    let (data, response) = try await session.data(for: request)
-    guard let httpResponse = response as? HTTPURLResponse,
-          (200..<300).contains(httpResponse.statusCode) else {
-      let body = String(data: data, encoding: .utf8) ?? ""
-      throw GeminiProviderError.tokenExchangeFailed(body)
-    }
-
-    guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let accessToken = obj["access_token"] as? String else {
+  private func buildRequest(
+    messages: [CoachChatMessage],
+    systemPrompt: String,
+    modelID: String,
+    apiKey: String
+  ) throws -> URLRequest {
+    let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(modelID):streamGenerateContent?key=\(apiKey)&alt=sse"
+    guard let url = URL(string: urlString) else {
       throw GeminiProviderError.invalidResponse
     }
 
-    let refreshToken = obj["refresh_token"] as? String
-      ?? (params["refresh_token"] ?? "")
-    let expiresIn = obj["expires_in"] as? TimeInterval
-    let expiresAt = expiresIn.map { Date().addingTimeInterval($0) }
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.timeoutInterval = 180
 
-    return GeminiStoredToken(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-      expiresAt: expiresAt,
-      updatedAt: Date()
-    )
-  }
+    let body: [String: Any] = [
+      "systemInstruction": ["parts": [["text": systemPrompt]]],
+      "contents": messages.map { msg -> [String: Any] in
+        let role = msg.role == .user ? "user" : "model"
+        return ["role": role, "parts": [["text": msg.text]]]
+      },
+    ]
+    request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-  private func formURLEncoded(_ values: [String: String]) -> Data {
-    var components = URLComponents()
-    components.queryItems = values.map { URLQueryItem(name: $0.key, value: $0.value) }
-    return Data((components.percentEncodedQuery ?? "").utf8)
+    return request
   }
 }

@@ -23,7 +23,7 @@ final class CoachProviderTests: XCTestCase {
       // availablePresets accessible for all providers (non-empty for ChatGPT/Claude/Gemini;
       // Custom may be empty until model ID is configured — assert accessible only)
       let presets = provider.availablePresets
-      if provider.id == "custom" {
+      if provider.id == "custom" || provider.id == "gemini" {
         _ = presets
       } else {
         XCTAssertFalse(
