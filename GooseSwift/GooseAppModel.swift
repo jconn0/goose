@@ -386,7 +386,7 @@ final class GooseAppModel {
     }
   }
 
-  convenience init(launchArguments: [String] = ProcessInfo.processInfo.arguments) {
+  convenience init(launchArguments: [String]) {
     let isUITesting = launchArguments.contains("--ui-testing")
     self.init(startBLE: !isUITesting)
     if isUITesting {
