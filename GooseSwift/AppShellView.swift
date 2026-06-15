@@ -52,18 +52,22 @@ struct AppShellView: View {
             HealthRouteDestinationView(route: route, store: healthStore, selectedDate: $homeSelectedDate)
           }
       }
+      .accessibilityIdentifier("tab_content_\(tab.id)")
     } else if tab == .health {
       NavigationStack(path: $router.healthPath) {
         tabContent(for: tab)
       }
+      .accessibilityIdentifier("tab_content_\(tab.id)")
     } else if tab == .more {
       NavigationStack(path: $router.morePath) {
         tabContent(for: tab)
       }
+      .accessibilityIdentifier("tab_content_\(tab.id)")
     } else {
       NavigationStack {
         tabContent(for: tab)
       }
+      .accessibilityIdentifier("tab_content_\(tab.id)")
     }
   }
 

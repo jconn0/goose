@@ -6,32 +6,43 @@ struct CoachSettingsSheet: View {
   @Bindable var registry: CoachProviderRegistry
   var chat: CoachChatModel
   @Environment(\.dismiss) private var dismiss
+  @State private var selectedProviderID: String = ""
 
   var body: some View {
-    List {
-      Section(String(localized: "Provider")) {
-        ForEach(registry.allProviders, id: \.id) { provider in
-          CoachProviderPickerRow(
-            provider: provider,
-            isActive: provider.id == registry.activeProvider?.id
-          ) {
-            registry.selectProvider(id: provider.id)
+    ScrollView {
+      VStack(spacing: 24) {
+        SettingsSection(String(localized: "Provider")) {
+          VStack(spacing: 0) {
+            ForEach(registry.allProviders, id: \.id) { provider in
+              CoachProviderPickerRow(
+                provider: provider,
+                isActive: provider.id == registry.activeProvider?.id
+              ) {
+                registry.selectProvider(id: provider.id)
+              }
+            }
+          }
+        }
+        SettingsSection(String(localized: "Configuration")) {
+          providerConfigContent
+        }
+        if let active = registry.activeProvider, !active.availablePresets.isEmpty {
+          SettingsSection(String(localized: "Model")) {
+            CoachModelPresetPickerView(chat: chat, presets: active.availablePresets)
           }
         }
       }
-
-      Section(String(localized: "Configuration")) {
-        CoachProviderConfigView(registry: registry, chat: chat)
-      }
-
-      if let active = registry.activeProvider, !active.availablePresets.isEmpty {
-        Section(String(localized: "Model")) {
-          CoachModelPresetPickerView(chat: chat, presets: active.availablePresets)
-        }
-      }
+      .padding(.vertical, 8)
     }
     .navigationTitle(String(localized: "Coach Settings"))
     .navigationBarTitleDisplayMode(.inline)
+    .accessibilityIdentifier("coach_settings_sheet")
+    .onAppear {
+      selectedProviderID = registry.activeProvider?.id ?? ""
+    }
+    .onChange(of: registry.activeProvider?.id) { _, newID in
+      selectedProviderID = newID ?? ""
+    }
     .toolbar {
       ToolbarItem(placement: .topBarLeading) {
         Button(String(localized: "Done")) {
@@ -39,6 +50,82 @@ struct CoachSettingsSheet: View {
         }
       }
     }
+  }
+
+  @ViewBuilder
+  private var providerConfigContent: some View {
+    let activeProvider = registry.allProviders.first(where: { $0.id == selectedProviderID })
+    if let active = activeProvider {
+      switch active.id {
+      case "chatgpt":
+        if let chatGPT = active as? ChatGPTCoachProvider {
+          ChatGPTConfigView(provider: chatGPT, chat: chat)
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      case "claude":
+        if let claude = active as? ClaudeCoachProvider {
+          ClaudeConfigView(provider: claude)
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      case "gemini":
+        if let gemini = active as? GeminiCoachProvider {
+          GeminiConfigView(provider: gemini)
+            .accessibilityIdentifier("gemini_config_view")
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      case "custom":
+        if let custom = active as? CustomEndpointCoachProvider {
+          CustomEndpointConfigView(provider: custom)
+        } else {
+          Text(String(localized: "This provider could not be configured. Please reselect it above."))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+      default:
+        Text(String(localized: "Select a provider above to get started."))
+          .foregroundStyle(.secondary)
+          .font(.subheadline)
+      }
+    } else {
+      Text(String(localized: "Select a provider above to get started."))
+        .foregroundStyle(.secondary)
+        .font(.subheadline)
+    }
+  }
+}
+
+// MARK: - SettingsSection
+
+private struct SettingsSection<Content: View>: View {
+  let title: String
+  @ViewBuilder let content: () -> Content
+
+  init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+    self.title = title
+    self.content = content
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(title)
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .textCase(.uppercase)
+        .padding(.horizontal, 16)
+
+      content()
+        .padding(.horizontal, 16)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 
@@ -103,62 +190,9 @@ struct CoachProviderPickerRow: View {
       }
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
+    .accessibilityIdentifier("coach_provider_\(provider.id)")
     .accessibilityAddTraits(isActive ? .isSelected : [])
     .accessibilityLabel("\(provider.displayName), \(provider.isAuthenticated ? String(localized: "Signed in") : String(localized: "Not signed in"))\(isActive ? String(localized: ", active") : "")")
-  }
-}
-
-// MARK: - CoachProviderConfigView
-
-struct CoachProviderConfigView: View {
-  @Bindable var registry: CoachProviderRegistry
-  var chat: CoachChatModel
-
-  private var providerMismatchView: some View {
-    assertionFailure("Active provider does not match its registered id type")
-    return Text(String(localized: "This provider could not be configured. Please reselect it above."))
-      .foregroundStyle(.secondary)
-      .font(.subheadline)
-  }
-
-  var body: some View {
-    if let active = registry.activeProvider {
-      switch active.id {
-      case "chatgpt":
-        if let chatGPT = active as? ChatGPTCoachProvider {
-          ChatGPTConfigView(provider: chatGPT, chat: chat)
-        } else {
-          providerMismatchView
-        }
-      case "claude":
-        if let claude = active as? ClaudeCoachProvider {
-          ClaudeConfigView(provider: claude)
-        } else {
-          providerMismatchView
-        }
-      case "gemini":
-        if let gemini = active as? GeminiCoachProvider {
-          GeminiConfigView(provider: gemini)
-        } else {
-          providerMismatchView
-        }
-      case "custom":
-        if let custom = active as? CustomEndpointCoachProvider {
-          CustomEndpointConfigView(provider: custom)
-        } else {
-          providerMismatchView
-        }
-      default:
-        Text(String(localized: "Select a provider above to get started."))
-          .foregroundStyle(.secondary)
-          .font(.subheadline)
-      }
-    } else {
-      Text(String(localized: "Select a provider above to get started."))
-        .foregroundStyle(.secondary)
-        .font(.subheadline)
-    }
   }
 }
 
@@ -411,6 +445,7 @@ private struct GeminiConfigView: View {
           .textInputAutocapitalization(.never)
           .autocorrectionDisabled()
           .onSubmit { saveKey() }
+          .accessibilityIdentifier("gemini_api_key_field")
 
         HStack {
           Button {
@@ -420,6 +455,7 @@ private struct GeminiConfigView: View {
           }
           .buttonStyle(.borderedProminent)
           .disabled(apiKey.isEmpty)
+          .accessibilityIdentifier("gemini_save_api_key_button")
 
           if let keyStatus {
             Text(keyStatus)
@@ -431,8 +467,10 @@ private struct GeminiConfigView: View {
         Link(String(localized: "Get an API key from Google AI Studio"),
              destination: URL(string: "https://aistudio.google.com/apikey")!)
           .font(.caption)
+          .accessibilityIdentifier("gemini_ai_studio_link")
       }
     }
+    .accessibilityIdentifier("gemini_config_view")
     .task {
       if provider.isAuthenticated && provider.availableModels.isEmpty {
         await provider.fetchAvailableModels()

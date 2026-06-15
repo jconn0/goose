@@ -211,6 +211,9 @@
 		D10000000000000000000062 /* WhoopFrameParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000062 /* WhoopFrameParser.swift */; };
 		T10000000000000000000011 /* TemperatureFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T20000000000000000000013 /* TemperatureFormattingTests.swift */; };
 		T10000000000000000000012 /* BaselineProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T20000000000000000000014 /* BaselineProgressTests.swift */; };
+		U100000000000000000000001 /* GooseSwiftUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U200000000000000000000002 /* GooseSwiftUITests.swift */; };
+		U100000000000000000000002 /* XCTestCase+Goose.swift in Sources */ = {isa = PBXBuildFile; fileRef = U200000000000000000000003 /* XCTestCase+Goose.swift */; };
+		U100000000000000000000003 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = T20000000000000000000005 /* XCTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -222,6 +225,13 @@
 			remoteInfo = GooseWorkoutLiveActivityExtension;
 		};
 		T70000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A70000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000001;
+			remoteInfo = GooseSwift;
+		};
+		U70000000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A70000000000000000000001 /* Project object */;
 			proxyType = 1;
@@ -459,6 +469,10 @@
 		D20000000000000000000062 /* WhoopFrameParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopFrameParser.swift; sourceTree = "<group>"; };
 		T20000000000000000000013 /* TemperatureFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureFormattingTests.swift; sourceTree = "<group>"; };
 		T20000000000000000000014 /* BaselineProgressTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineProgressTests.swift; sourceTree = "<group>"; };
+		U200000000000000000000001 /* GooseSwiftUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GooseSwiftUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		U200000000000000000000002 /* GooseSwiftUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GooseSwiftUITests.swift; sourceTree = "<group>"; };
+		U200000000000000000000003 /* XCTestCase+Goose.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Goose.swift"; sourceTree = "<group>"; };
+		U200000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -488,6 +502,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		U60000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				U100000000000000000000003 /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -505,6 +527,7 @@
 				A40000000000000000000002 /* GooseSwift */,
 				B40000000000000000000001 /* GooseWorkoutLiveActivityExtension */,
 				T40000000000000000000001 /* GooseSwiftTests */,
+				U40000000000000000000001 /* GooseSwiftUITests */,
 				A40000000000000000000003 /* Scripts */,
 				F40000000000000000000001 /* Config */,
 				A40000000000000000000004 /* Frameworks */,
@@ -727,6 +750,7 @@
 				A2000000000000000000000D /* GooseSwift.app */,
 				B20000000000000000000004 /* GooseWorkoutLiveActivityExtension.appex */,
 				T20000000000000000000001 /* GooseSwiftTests.xctest */,
+				U200000000000000000000001 /* GooseSwiftUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -773,6 +797,16 @@
 				T20000000000000000000004 /* Info.plist */,
 			);
 			path = GooseSwiftTests;
+			sourceTree = "<group>";
+		};
+		U40000000000000000000001 /* GooseSwiftUITests */ = {
+			isa = PBXGroup;
+			children = (
+				U200000000000000000000002 /* GooseSwiftUITests.swift */,
+				U200000000000000000000003 /* XCTestCase+Goose.swift */,
+				U200000000000000000000004 /* Info.plist */,
+			);
+			path = GooseSwiftUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -832,6 +866,23 @@
 			productReference = T20000000000000000000001 /* GooseSwiftTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		U50000000000000000000001 /* GooseSwiftUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = U90000000000000000000001 /* Build configuration list for PBXNativeTarget "GooseSwiftUITests" */;
+			buildPhases = (
+				U60000000000000000000002 /* Sources */,
+				U60000000000000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				U70000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = GooseSwiftUITests;
+			productName = GooseSwiftUITests;
+			productReference = U200000000000000000000001 /* GooseSwiftUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -872,6 +923,7 @@
 				A50000000000000000000001 /* GooseSwift */,
 				B50000000000000000000001 /* GooseWorkoutLiveActivityExtension */,
 				T50000000000000000000001 /* GooseSwiftTests */,
+				U50000000000000000000001 /* GooseSwiftUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -1137,6 +1189,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		U60000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				U100000000000000000000001 /* GooseSwiftUITests.swift in Sources */,
+				U100000000000000000000002 /* XCTestCase+Goose.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1149,6 +1210,11 @@
 			isa = PBXTargetDependency;
 			target = A50000000000000000000001 /* GooseSwift */;
 			targetProxy = T70000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		U70000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000001 /* GooseSwift */;
+			targetProxy = U70000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1473,6 +1539,40 @@
 			};
 			name = Release;
 		};
+		U800000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GooseSwiftUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.goose.cro.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GooseSwift;
+				VALID_ARCHS = arm64;
+			};
+			name = Debug;
+		};
+		U800000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GooseSwiftUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.goose.cro.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GooseSwift;
+				VALID_ARCHS = arm64;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1508,6 +1608,15 @@
 			buildConfigurations = (
 				T80000000000000000000001 /* Debug */,
 				T80000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		U90000000000000000000001 /* Build configuration list for PBXNativeTarget "GooseSwiftUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				U800000000000000000000001 /* Debug */,
+				U800000000000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

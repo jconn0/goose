@@ -103,6 +103,11 @@ final class ActivitySessionModel: ObservableObject {
     heartRateProvider = nil
   }
 
+  func clearFinishedState() {
+    guard !isActive else { return }
+    endedAt = nil
+  }
+
   func tick(now: Date, heartRate: Int?) {
     guard isActive, !isPaused else {
       return

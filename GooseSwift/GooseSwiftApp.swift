@@ -5,7 +5,7 @@ import SwiftUI
 struct GooseSwiftApp: App {
   @UIApplicationDelegateAdaptor(GooseAppDelegate.self) private var appDelegate
   @Environment(\.scenePhase) private var scenePhase
-  @State private var model = GooseAppModel()
+  @State private var model = GooseAppModel(launchArguments: ProcessInfo.processInfo.arguments)
   @StateObject private var router = AppRouter()
 
   // Weak reference used by the BGTask handler closure to reach the model.
