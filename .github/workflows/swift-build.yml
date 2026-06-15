@@ -174,9 +174,10 @@ jobs:
 
       - name: Generate HTML report
         if: always()
+        continue-on-error: true
         run: |
-          brew install xchtmlreport
-          xchtmlreport -j -r build/DerivedData/Logs/Test/*.xcresult
+          brew install xchtmlreport 2>/dev/null || true
+          xchtmlreport -j -r build/DerivedData/Logs/Test/*.xcresult 2>/dev/null || true
 
       - name: Upload HTML report
         if: always()
