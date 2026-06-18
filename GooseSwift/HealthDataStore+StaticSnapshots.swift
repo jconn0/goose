@@ -16,6 +16,7 @@ extension HealthDataStore {
     snapshot(id: "packet-inputs", route: .packetInputs, group: .algorithms, title: "Packet Inputs", value: "--", unit: "", status: "Not extracted", freshness: "No run", provenance: "metricInputReadinessSummary()", source: .unavailable("packet-derived inputs not extracted"), systemImage: "square.stack.3d.up", tint: .blue, trendValues: [], range: "Run to populate"),
     snapshot(id: "algorithms", route: .algorithms, group: .algorithms, title: "Algorithms", value: "--", unit: "families", status: "Not loaded", freshness: "No bridge catalog", provenance: "algorithmDefinitions", source: .unavailable("metric registry not loaded"), systemImage: "function", tint: .purple, trendValues: [], range: "No data"),
     snapshot(id: "calibration", route: .calibration, group: .algorithms, title: "Calibration", value: "--", unit: "", status: "No labels", freshness: "No run", provenance: "calibrationSummary()", source: .unavailable("calibration requires stored labels and local runs"), systemImage: "slider.horizontal.3", tint: .mint, trendValues: [], range: "No data"),
+    snapshot(id: "nutrition", route: .nutrition, group: .today, title: "Nutrition", value: "--", unit: "kcal", status: "Not synced", freshness: "No sync", provenance: "cronometer", source: .unavailable("connect Cronometer in Settings to sync nutrition data"), systemImage: "fork.knife", tint: .orange, trendValues: [], range: "No data"),
   ]
 
   static let baseHealthMonitorSnapshots = [

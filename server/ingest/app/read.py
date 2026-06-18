@@ -424,3 +424,37 @@ def read_batch_frames(file_path):
             "parsed": parsed.get("parsed", {}),
         })
     return out
+
+
+# ── Nutrition reads ──────────────────────────────────────────────────────────
+
+_NUTRITION_COLS = [
+    "device_id", "date", "source", "calories", "protein_g", "carbs_g",
+    "fat_g", "fiber_g", "sugar_g", "saturated_fat_g", "sodium_mg",
+    "cholesterol_mg", "micronutrients", "created_at",
+]
+
+
+def query_nutrition(conn, device_id, day):
+    """Return the daily_nutrition row for (device_id, date). ``day`` is a
+    datetime.date (or YYYY-MM-DD string). Returns a single dict or None."""
+    row = conn.execute(
+        f"SELECT {', '.join(_NUTRITION_COLS)} FROM daily_nutrition "
+        "WHERE device_id = %s AND date = %s",
+        (device_id, day),
+    ).fetchone()
+    if row is None:
+        return None
+    return dict(zip(_NUTRITION_COLS, row))
+
+
+def query_nutrition_range(conn, device_id, start_date, end_date):
+    """daily_nutrition rows for a device over the inclusive [start_date, end_date]
+    DATE range. start_date/end_date are datetime.date (or YYYY-MM-DD strings).
+    Ordered ascending by date."""
+    rows = conn.execute(
+        f"SELECT {', '.join(_NUTRITION_COLS)} FROM daily_nutrition "
+        "WHERE device_id = %s AND date >= %s AND date <= %s ORDER BY date",
+        (device_id, start_date, end_date),
+    ).fetchall()
+    return [dict(zip(_NUTRITION_COLS, r)) for r in rows]

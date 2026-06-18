@@ -491,3 +491,66 @@ def get_batch_frames(batch_id: str):
     if row is None:
         raise HTTPException(status_code=404, detail="batch not found")
     return read.read_batch_frames(row[0])
+
+
+# ── Nutrition endpoints ──────────────────────────────────────────────────────
+
+
+class NutritionEntry(BaseModel):
+    device: str
+    date: str  # YYYY-MM-DD
+    source: str = "cronometer"
+    calories: float | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
+    fiber_g: float | None = None
+    sugar_g: float | None = None
+    saturated_fat_g: float | None = None
+    sodium_mg: float | None = None
+    cholesterol_mg: float | None = None
+    # Arbitrary key-value map for vitamins, minerals, omega-3, etc.
+    micronutrients: dict[str, float] | None = None
+
+
+@app.post("/v1/nutrition", dependencies=[Depends(require_auth)])
+def upsert_nutrition(body: NutritionEntry):
+    """Upsert a day's nutrition totals (from Cronometer sync or manual entry).
+    Idempotent: re-posting the same (device, date) overwrites in place."""
+    day = _parse_date(body.date)
+    with psycopg.connect(cfg.db_dsn) as conn:
+        store.ensure_device(conn, body.device)
+        store.upsert_daily_nutrition(conn, body.device, day, {
+            "source": body.source,
+            "calories": body.calories,
+            "protein_g": body.protein_g,
+            "carbs_g": body.carbs_g,
+            "fat_g": body.fat_g,
+            "fiber_g": body.fiber_g,
+            "sugar_g": body.sugar_g,
+            "saturated_fat_g": body.saturated_fat_g,
+            "sodium_mg": body.sodium_mg,
+            "cholesterol_mg": body.cholesterol_mg,
+            "micronutrients": body.micronutrients,
+        })
+        conn.commit()
+    return {"status": "ok", "device": body.device, "date": body.date}
+
+
+@app.get("/v1/nutrition", dependencies=[Depends(require_auth)])
+def get_nutrition(device: str, date: str):
+    """Return nutrition totals for a single day (YYYY-MM-DD). None if no data."""
+    day = _parse_date(date)
+    with psycopg.connect(cfg.db_dsn) as conn:
+        row = read.query_nutrition(conn, device, day)
+    return row or {}
+
+
+@app.get("/v1/nutrition/range", dependencies=[Depends(require_auth)])
+def get_nutrition_range(device: str,
+                        from_: str = Query(..., alias="from"),
+                        to: str = Query(..., alias="to")):
+    """daily_nutrition rows over the inclusive [from, to] date range (YYYY-MM-DD)."""
+    start, end = _parse_date(from_), _parse_date(to)
+    with psycopg.connect(cfg.db_dsn) as conn:
+        return read.query_nutrition_range(conn, device, start, end)

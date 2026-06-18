@@ -321,6 +321,9 @@ extension HealthDataStore {
     if route == .energyBank && !previewMissingData {
       return energyBankSnapshot(base: snapshot)
     }
+    if route == .nutrition {
+      return nutritionSnapshot(base: snapshot)
+    }
     guard previewMissingData else {
       return snapshot
     }

@@ -166,7 +166,8 @@ final class MoreDataStore: ObservableObject {
       developer: .pending,
       breathe: .ready,
       intervalTimer: .ready,
-      metricExplorer: .ready
+      metricExplorer: .ready,
+      cronometer: CronometerKeychain.hasCredentials() ? .ready : .pending,
     )
     routeStatus = newStatus
   }

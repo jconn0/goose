@@ -114,6 +114,13 @@ final class HealthDataStore {
   var hrvTrendPoints: [(date: String, value: Double)] = []
   var strainTrendPoints: [(date: String, value: Double)] = []
 
+  // Nutrition tracking (Cronometer sync — HealthDataStore+Nutrition.swift)
+  // Stored here because Swift extensions cannot add stored properties to @Observable classes.
+  var nutritionDays: [NutritionDayItem] = []
+  var nutritionStatus = "Not synced"
+  var nutritionLatestDate: String? = nil
+  var nutritionCalorieGoal: Double? = nil  // daily kcal target from metric_series
+
   static let liveHRVRMSSDDefaultsKey = "goose.swift.liveHRVRMSSD"
   static let liveHRVRRIntervalCountDefaultsKey = "goose.swift.liveHRVRRIntervalCount"
   static let liveHRVRMSSDSampleCountDefaultsKey = "goose.swift.liveHRVRMSSDSampleCount"

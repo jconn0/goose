@@ -248,3 +248,28 @@ ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS training_state      TEXT;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_needed_min    REAL;
 -- Phase 13 ALG-13: Total daily calories (RMR Mifflin–St Jeor + exercise kcal)
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS total_calories_kcal REAL;
+
+-- ── Nutrition tracking (synchronised from Cronometer via iOS app) ──────────
+-- One row per device per day. Upserted idempotently; the iOS app POSTs
+-- yesterday's totals each time it fetches from Cronometer's mobile REST API.
+-- Deliberately a PLAIN table — not a hypertable — because the volume is one
+-- row per device per day (same rationale as sleep_sessions / daily_metrics).
+CREATE TABLE IF NOT EXISTS daily_nutrition (
+    device_id          TEXT NOT NULL,
+    date               DATE NOT NULL,
+    source             TEXT NOT NULL DEFAULT 'cronometer',
+    calories           REAL,
+    protein_g          REAL,
+    carbs_g            REAL,
+    fat_g              REAL,
+    fiber_g            REAL,
+    sugar_g            REAL,
+    saturated_fat_g    REAL,
+    sodium_mg          REAL,
+    cholesterol_mg     REAL,
+    -- JSONB blob for all other micronutrients (vitamins, minerals, etc.)
+    -- so the schema stays narrow while preserving full detail for Coach queries.
+    micronutrients     JSONB,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (device_id, date)
+);

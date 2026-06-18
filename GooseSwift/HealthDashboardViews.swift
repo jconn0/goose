@@ -391,6 +391,8 @@ struct HealthRouteContentView: View {
       ReferenceComparisonsView(store: store)
     case .calibration:
       CalibrationHealthView(store: store)
+    case .nutrition:
+      NutritionDashboardView(store: store)
     }
   }
 }
@@ -662,5 +664,157 @@ struct PacketHealthView: View {
     }
     .gooseListBackground()
     .navigationTitle("Packet Inputs")
+  }
+}
+
+// Nutrition dashboard — macro summary card and 7-day trend.
+struct NutritionDashboardView: View {
+  var store: HealthDataStore
+
+  var body: some View {
+    List {
+      Section {
+        VStack(spacing: 0) {
+          NutritionSummaryCard(days: store.nutritionDays)
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+        .listRowBackground(Color.clear)
+      }
+
+      Section("7-Day Average") {
+        let summary = store.buildWeeklySummary()
+        if summary.dayCount > 0 {
+          NutritionStatRow(label: "Avg Calories", value: summary.formattedAvgCalories, unit: "kcal", systemImage: "flame")
+          NutritionStatRow(label: "Avg Protein", value: String(format: "%.0f", summary.avgProtein), unit: "g", systemImage: "circle.hexagongrid")
+          NutritionStatRow(label: "Avg Carbs", value: String(format: "%.0f", summary.avgCarbs), unit: "g", systemImage: "circle.grid.cross")
+          NutritionStatRow(label: "Avg Fat", value: String(format: "%.0f", summary.avgFat), unit: "g", systemImage: "drop")
+        } else {
+          Text(store.nutritionStatus)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
+      }
+
+      Section {
+        Text(store.nutritionStatus)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      } header: {
+        Text("Sync Status")
+      }
+    }
+    .gooseListBackground()
+    .navigationTitle("Nutrition")
+    .task {
+      await store.fetchWeekNutrition()
+    }
+    .refreshable {
+      await store.fetchWeekNutrition()
+    }
+  }
+}
+
+// Compact nutrition summary card for grid layout.
+struct NutritionSummaryCard: View {
+  let days: [NutritionDayItem]
+
+  private var latest: NutritionDayItem? { days.last ?? days.first }
+
+  var body: some View {
+    Group {
+      if let day = latest {
+        VStack(spacing: 14) {
+          HStack(spacing: 24) {
+            MacroGauge(label: "Calories", value: day.calories, unit: "kcal", color: .orange)
+            MacroGauge(label: "Protein", value: day.proteinG ?? 0, unit: "g", color: .blue)
+            MacroGauge(label: "Carbs", value: day.carbsG ?? 0, unit: "g", color: .green)
+            MacroGauge(label: "Fat", value: day.fatG ?? 0, unit: "g", color: .yellow)
+          }
+
+          HStack(spacing: 0) {
+            Text(day.dateLabel)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            Spacer()
+            // Mini bar showing protein/carbs/fat ratio.
+            if let protein = day.proteinG, let carbs = day.carbsG, let fat = day.fatG,
+               protein + carbs + fat > 0 {
+              let total = protein + carbs + fat
+              HStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                  .fill(.blue)
+                  .frame(width: max(1, 60 * (protein / total)))
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                  .fill(.green)
+                  .frame(width: max(1, 60 * (carbs / total)))
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                  .fill(.yellow)
+                  .frame(width: max(1, 60 * (fat / total)))
+              }
+              .frame(height: 6)
+            }
+          }
+        }
+        .padding(16)
+        .healthDashboardSurface(tint: .orange, tintOpacity: 0.04)
+      } else {
+        VStack(spacing: 8) {
+          Image(systemName: "fork.knife")
+            .font(.title2)
+            .foregroundStyle(.secondary)
+          Text("No nutrition data")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .healthDashboardSurface(tint: .orange, tintOpacity: 0.04)
+      }
+    }
+  }
+}
+
+private struct MacroGauge: View {
+  let label: String
+  let value: Double
+  let unit: String
+  let color: Color
+
+  var body: some View {
+    VStack(spacing: 4) {
+      Text(value > 0 ? "\(Int(value.rounded()))" : "--")
+        .font(.title3.weight(.bold))
+        .foregroundStyle(color)
+      Text(unit)
+        .font(.caption2.weight(.medium))
+        .foregroundStyle(.secondary)
+      Text(label)
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+  }
+}
+
+private struct NutritionStatRow: View {
+  let label: String
+  let value: String
+  let unit: String
+  let systemImage: String
+
+  var body: some View {
+    HStack {
+      Image(systemName: systemImage)
+        .foregroundStyle(.secondary)
+        .frame(width: 24)
+      Text(label)
+        .font(.subheadline)
+      Spacer()
+      Text(value)
+        .font(.subheadline.weight(.semibold))
+        .monospacedDigit()
+      Text(unit)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
   }
 }
